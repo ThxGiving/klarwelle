@@ -1,0 +1,132 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    // JVM screenshot testing: render the real Compose frontends to PNG via Robolectric, no
+    // emulator — so the UI in every state can be reviewed at the desk (like the following sim).
+    id 'io.github.takahirom.roborazzi' version '1.32.0'
+}
+
+android {
+    namespace 'com.px6.radio'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'io.github.thxgiving.klarwelle'
+        minSdk 21
+        targetSdk 35
+        versionCode 5
+        versionName '1.0.4'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    // Signing secrets live in local.properties (git-ignored) or the environment — never in the
+    // repository. Keys: KLARWELLE_STORE_FILE, KLARWELLE_STORE_PASSWORD, KLARWELLE_KEY_ALIAS,
+    // KLARWELLE_KEY_PASSWORD. For Play, upload with an UPLOAD key and let Play App Signing hold
+    // the app signing key; the local key then only signs sideload builds.
+    def localProps = new Properties()
+    def localFile = rootProject.file('local.properties')
+    if (localFile.exists()) localFile.withInputStream { localProps.load(it) }
+    def secret = { String key -> localProps.getProperty(key) ?: System.getenv(key) }
+    signingConfigs {
+        release {
+            def sf = secret('KLARWELLE_STORE_FILE')
+            if (sf != null) {
+                storeFile file(sf)
+                storePassword secret('KLARWELLE_STORE_PASSWORD')
+                keyAlias secret('KLARWELLE_KEY_ALIAS')
+                keyPassword secret('KLARWELLE_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    buildFeatures {
+        compose true
+        buildConfig true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.5.14'
+    }
+    testOptions {
+        unitTests {
+            // The backend uses android.util.Log; in a plain JVM test its methods are stubs that
+            // otherwise throw "not mocked". We only need them to do nothing.
+            returnDefaultValues = true
+            // Robolectric/Roborazzi need real Android resources to render Compose to a bitmap.
+            includeAndroidResources = true
+        }
+    }
+}
+
+// Silence the cosmetic "source/target 8 is obsolete" javac note. Bumping the language level to 11/17
+// would need AGP >= 8.6 for compileSdk 35 (the JdkImageTransform fails on 8.5.2 otherwise), a
+// deliberate toolchain upgrade tracked separately — until then Java 8 is fine, just don't warn.
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs << '-Xlint:-options'
+}
+
+dependencies {
+    // DAB+ backend (our ported omri-usb working copy)
+    implementation project(':omriusb')
+    // RadioDNS resolver (official logos + IP simulcast bearers) — vendored hradio/radiodns.
+    implementation project(':radiodns')
+
+    implementation 'androidx.core:core-ktx:1.13.1'
+    implementation 'androidx.datastore:datastore-preferences:1.1.1'
+    implementation 'androidx.media:media:1.7.0'
+    // Internet-radio playback: media3/ExoPlayer. Reads ICY "now playing" metadata natively on the
+    // play connection (no second connection), handles HLS (BBC) + in-band ID3 metadata, robust
+    // buffering/reconnect. Apache-2.0, Google/Jetpack.
+    implementation 'androidx.media3:media3-exoplayer:1.4.1'
+    implementation 'androidx.media3:media3-exoplayer-hls:1.4.1'
+    // Root-/adb-less hidden-API unseal (Android 11 blocks reflective access to vendor framework
+    // classes like android.microntek.CarManager). See docs — meta-reflection was closed in R.
+    implementation 'org.lsposed.hiddenapibypass:hiddenapibypass:4.3'
+    implementation 'androidx.activity:activity-compose:1.9.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.8.3'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.3'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.8.3'
+
+    def composeBom = platform('androidx.compose:compose-bom:2024.06.00')
+    implementation composeBom
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.material3:material3'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+
+    // Local JVM unit tests for the backend logic (audio mutex, tuning, state).
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1'
+
+    // JVM Compose screenshot rendering (no emulator): Robolectric + Roborazzi render the real
+    // frontends to PNG so the UI can be inspected off-device.
+    testImplementation 'org.robolectric:robolectric:4.13'
+    testImplementation composeBom
+    testImplementation 'androidx.compose.ui:ui-test-junit4'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi:1.32.0'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi-compose:1.32.0'
+    testImplementation 'io.github.takahirom.roborazzi:roborazzi-junit-rule:1.32.0'
+
+    // Instrumented Compose UI tests — render the frontends with edge-case states on the emulator.
+    androidTestImplementation composeBom
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test:runner:1.6.2'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+}

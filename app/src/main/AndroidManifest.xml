@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Store distribution: head units and tablets only. Play hides the app from any device whose
+         shorter screen edge is under this width — every phone (360-432 dp) is out, every head unit
+         and tablet (480 dp and up) is in. 460 rather than 480 on purpose: the M.I.C. AV8V6 sits at
+         exactly 480 dp (1280x720 at 240 dpi), and some units report an odd density. Sideloading is
+         unaffected; this is a Play filter, not an install restriction. -->
+    <supports-screens android:requiresSmallestWidthDp="460" />
+
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <!-- Location hardware is optional: the app is fully usable without it (see the location
+         permissions below). Without this, Play infers "GPS required" from the permission and hides
+         the app from tablets that have none. -->
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.location.gps" android:required="false" />
+    <!-- Only used when the user asks for the station-logo download. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- Optional, only for the ASA "alert area follows the car" option: the DAB location code is
+         derived from the position (ETSI TS 104 089 annex F). The app works fully without it. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Floating "now playing" mini-player over other apps while the radio runs in the background. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Lets a privileged/system-installed app self-grant USB access (UsbManager.grantPermission) so
+         the DAB stick never triggers the per-boot permission dialog. Signature|privileged — a no-op
+         on a normal install (we fall back to the runtime prompt), but many head-unit ROMs honour it. -->
+    <!-- No storage permission needed: diagnostics/logs go to app-specific external dirs
+         (getExternalFilesDirs, e.g. USB/Android/data/…/files) and the logo cache to filesDir. -->
+
+    <application
+        android:name=".RadioApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/Theme.Px6Radio">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Invisible, Direct-Boot-aware receiver of USB_DEVICE_ATTACHED. Getting this event delivered
+             to an Activity at boot is what reloads the persisted "use by default" USB grant into the
+             in-memory map, so the per-boot permission dialog stops (see UsbAttachActivity). Must be
+             directBootAware: on head units the stick is attached during Direct Boot, before unlock. -->
+        <activity
+            android:name=".UsbAttachActivity"
+            android:exported="true"
+            android:directBootAware="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
+        </activity>
+    </application>
+
+</manifest>

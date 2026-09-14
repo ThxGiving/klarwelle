@@ -1,0 +1,654 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<serviceInformation xmlns="http://www.worlddab.org/schemas/spi/31" xsi:schemaLocation="http://www.worlddab.org/schemas/spi/31 spi_31.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" creationTime="2026-08-01T02:30:42.228Z" originator="ARD POC RadioDNS Server" xml:lang="de">
+  <services>
+    <serviceProvider>
+      <shortName>WDR</shortName>
+      <mediumName>WDR</mediumName>
+      <longName>Westdeutscher Rundfunk</longName>
+      <mediaDescription>
+        <shortDescription>Westdeutscher Rundfunk</shortDescription>
+      </mediaDescription>
+      <link uri="https://www.wdr.de" mimeValue="text/html" description="WDR Webpage" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <link uri="tel:+49-221-220-0" />
+      <geolocation>
+        <country>de</country>
+      </geolocation>
+    </serviceProvider>
+    <service>
+      <shortName>1LIVE</shortName>
+      <mediumName>1LIVE</mediumName>
+      <longName>1LIVE</longName>
+      <mediaDescription>
+        <shortDescription>1LIVE</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/5706441de371af4ad2006193.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/c4fa331d5f991ddac439f1b9.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/8474fc8198006217695b5ebe.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9105b6d3264f5bead53928f8.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/930a1366c077a3e9740d0b80.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.4.1">Pop</genre>
+      <link uri="https://www1.wdr.de/radio/1live/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="fm:de0.d391.*" cost="50" />
+      <bearer id="dab:de0.10ec.d391.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="http://wdr-1live-live.icecast.wdr.de/wdr/1live/live/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu403dewdr" />
+    </service>
+    <service>
+      <shortName>diggi</shortName>
+      <mediumName>1LIVE diggi</mediumName>
+      <longName>1LIVE diggi</longName>
+      <mediaDescription>
+        <shortDescription>1LIVE diggi</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/2088c62133efdde4cf283f07.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/ebe410c0ceb01314688a7ca0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/03d748eeb2a4b6a99280113d.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/86663c8f065af5f30dbab52d.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/c2274a38ef3600bc9b044ccb.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.4.1">Pop</genre>
+      <link uri="http://1livediggi.de/" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10ec.df91.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="http://wdr-1live-diggi.icecast.wdr.de/wdr/1live/diggi/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu404dewdr" />
+    </service>
+    <service>
+      <shortName>WDR Maus</shortName>
+      <mediumName>WDR Maus</mediumName>
+      <longName>WDR Maus</longName>
+      <mediaDescription>
+        <shortDescription>WDR Maus</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/fb778fef7eac1319b831a8d7.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/507704f8fe3793c1c1268d21.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/jpeg" url="http://dewdr.radiodns.ard.de/storage/ea797d268946f7690e286179.jpg" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/05081ecbdd1063f6d42dc0ba.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/jpeg" url="http://dewdr.radiodns.ard.de/storage/7fac67d8a2058b6ac4b5c3b0.jpg" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:4.2.1">Children</genre>
+      <link uri="https://www.wdrmaus.de/hoeren/" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.1019.df95.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="dab:de0.10ec.df95.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="dab:de0.10ee.df95.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="dab:de0.1208.df95.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="https://wdr-diemaus-live.icecastssl.wdr.de/wdr/diemaus/live/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu405dewdr" />
+    </service>
+    <service>
+      <shortName>WDRcosmo</shortName>
+      <mediumName>WDRcosmo</mediumName>
+      <longName>WDRcosmo</longName>
+      <mediaDescription>
+        <shortDescription>COSMO</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3f2fa97c360a79a9f1d30ace.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/8354e06d74d78c20db754c2d.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/e81a25f046d0ce7da9820b41.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/5ede42f7103a138d63422a40.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/c76d55271d34e856f2e74045.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:1.2">Information</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6">Other Music</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.4.1">Pop</genre>
+      <link uri="https://www1.wdr.de/radio/cosmo/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="http://wdr-cosmo-live.icecast.wdr.de/wdr/cosmo/live/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <bearer id="fm:de0.d496.*" cost="50" />
+      <bearer id="dab:de0.1019.d496.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="dab:de0.10ec.d496.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="dab:de0.1208.d496.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu406dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 RL</shortName>
+      <mediumName>WDR2 RHEINLAND</mediumName>
+      <longName>WDR2 RHEINLAND</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 Köln</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/49a14b6a3091d9c907824fac.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/33d1748491ff5b9f2483d25e.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9bcc062acd642977be7807d4.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3530a971fdf7e5ed5267ca51.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/ae956a014c34835f0e984128.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:1.2">Information</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.1.1.11">Local/Regional</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.4.1">Pop</genre>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="fm:de0.d392.*" cost="50" />
+      <bearer id="dab:de0.10fa.d992.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="http://wdr-wdr2-rheinland.icecast.wdr.de/wdr/wdr2/rheinland/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu407dewdr" />
+    </service>
+    <service>
+      <shortName>WDR3</shortName>
+      <mediumName>WDR3</mediumName>
+      <longName>WDR3</longName>
+      <mediaDescription>
+        <shortDescription>WDR3</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/353856a58787118a12339bfd.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/f1df47675030194931847a99.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/f9b514d4a29837fadf46e9b9.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/c9b1a529e2baa6778e428a1e.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/220d4bc6c25eaba2f03ec6ea.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.1">Classical music</genre>
+      <link uri="https://www1.wdr.de/radio/wdr3/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="fm:de0.d393.*" cost="50" />
+      <bearer id="dab:de0.10ec.d393.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="http://wdr-wdr3-live.icecast.wdr.de/wdr/wdr3/live/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu408dewdr" />
+    </service>
+    <service>
+      <shortName>WDR 4 RR</shortName>
+      <mediumName>WDR4 RHEIN-RUHR</mediumName>
+      <longName>WDR4 RHEIN-RUHR</longName>
+      <mediaDescription>
+        <shortDescription>WDR4 RHEIN-RUHR</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9d5a99a8a1ca97438b5a50da.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/8f660908ce1e1483ee41a85b.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/4d1fc52af594531f2f894bb0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9a1e8d2207ea8208ac0e66a9.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/09ed299f7e3250d339cef6e1.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.3">Leisure</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.3.2">Easy Listening</genre>
+      <link uri="https://www1.wdr.de/radio/wdr4/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="fm:de0.d394.*" cost="50" />
+      <bearer id="dab:de0.10ec.d794.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu409dewdr" />
+    </service>
+    <service>
+      <shortName>WDR 5</shortName>
+      <mediumName>WDR 5</mediumName>
+      <longName>WDR 5</longName>
+      <mediaDescription>
+        <shortDescription>WDR 5</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9dc17adca89249b7c076b1e4.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/34d809951ecf5bb2ac5f73ae.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/cce5fbfefa6a9f1f9c6b933f.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3d3b04f4b6f2c2f794f30c00.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/41cb35d8058b8dd72243d601.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:1.2">Information</genre>
+      <link uri="https://www1.wdr.de/radio/wdr5/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="fm:de0.d395.*" cost="50" />
+      <bearer id="dab:de0.10ec.d395.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="http://wdr-wdr5-live.icecast.wdr.de/wdr/wdr5/live/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu410dewdr" />
+    </service>
+    <service>
+      <shortName>WDREvent</shortName>
+      <mediumName>WDR Event</mediumName>
+      <longName>WDR Event</longName>
+      <mediaDescription>
+        <shortDescription>WDR Event</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/b1ab40fc74beb38b942130d7.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/a6e1bea3b015b2130ed8d82b.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/7a5d0de04d2c4d8da6391187.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/596aee5789242a5e424f55ff.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/914667887d04acbe42903031.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.1.1.16">Current Affairs</genre>
+      <link uri="https://www1.wdr.de/radio/wdr-event/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10ec.df96.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="http://wdr-wdr-event.icecast.wdr.de/wdr/wdr/event/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu412dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 RG</shortName>
+      <mediumName>WDR2 RUHRGEBIET</mediumName>
+      <longName>WDR2 RUHRGEBIET</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 RUHRGEBIET</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/065f29d915c86dddcec3ebc5.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/061244d55fbcfd20ec07d077.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3f9d56f52af81682600d2d4c.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/95c57ac26dba02c87925f7f4.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/7dfe3c3ffb7c72aebe6d6da4.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:1.2">Information</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.1.1.11">Local/Regional</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.4.1">Pop</genre>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.d692.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="https://wdr-wdr2-ruhrgebiet.icecastssl.wdr.de/wdr/wdr2/ruhrgebiet/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu413dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 RR</shortName>
+      <mediumName>WDR2 RHEIN-RUHR</mediumName>
+      <longName>WDR2 Rhein-Ruhr</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 RHEIN-RUHR</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/065f29d915c86dddcec3ebc5.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/061244d55fbcfd20ec07d077.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3f9d56f52af81682600d2d4c.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/95c57ac26dba02c87925f7f4.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/7dfe3c3ffb7c72aebe6d6da4.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:1.2">Information</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.1.1.11">Local/Regional</genre>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.4.1">Pop</genre>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10ec.d792.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="https://wdr-wdr2-rheinruhr.icecastssl.wdr.de/wdr/wdr2/rheinruhr/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu414dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 BL</shortName>
+      <mediumName>WDR2 BERG.-LAND</mediumName>
+      <longName>WDR2 Bergisches Land</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 Wuppertal-Bergisches Land</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/065f29d915c86dddcec3ebc5.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/061244d55fbcfd20ec07d077.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3f9d56f52af81682600d2d4c.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/95c57ac26dba02c87925f7f4.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/7dfe3c3ffb7c72aebe6d6da4.png" />
+      </mediaDescription>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.dc92.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="https://wdr-wdr2-bergischesland.icecastssl.wdr.de/wdr/wdr2/bergischesland/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu465dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 OW</shortName>
+      <mediumName>WDR2 OWL</mediumName>
+      <longName>WDR2 Ostwestfalen-Lippe</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 Bielefeld Ostwestfalen-Lippe</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/065f29d915c86dddcec3ebc5.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/061244d55fbcfd20ec07d077.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3f9d56f52af81682600d2d4c.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/95c57ac26dba02c87925f7f4.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/7dfe3c3ffb7c72aebe6d6da4.png" />
+      </mediaDescription>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10ec.d592.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="https://wdr-wdr2-ostwestfalenlippe.icecastssl.wdr.de/wdr/wdr2/ostwestfalenlippe/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu466dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 AC</shortName>
+      <mediumName>WDR2 AACHEN</mediumName>
+      <longName>WDR2 AACHEN</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 AACHEN</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/26ec1e816e90ae4ee2bb28ae.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/ed252a3bfe8d092fbf8ec015.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/14dd0785c50136612de0fb89.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/47d156bcc3fccf1c5d7285e9.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0078102138137e580aa6428c.png" />
+      </mediaDescription>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.d492.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="https://wdr-wdr2-aachenundregion.icecastssl.wdr.de/wdr/wdr2/aachenundregion/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu467dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 ML</shortName>
+      <mediumName>WDR2 MÜNSTERL</mediumName>
+      <longName>WDR2 MÜNSTERLAND</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 Münster</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/26ec1e816e90ae4ee2bb28ae.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/ed252a3bfe8d092fbf8ec015.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/14dd0785c50136612de0fb89.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/47d156bcc3fccf1c5d7285e9.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0078102138137e580aa6428c.png" />
+      </mediaDescription>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.da92.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu468dewdr" />
+    </service>
+    <service>
+      <shortName>WDR2 SW</shortName>
+      <mediumName>WDR2 SÜDWESTF</mediumName>
+      <longName>WDR2 SÜDWESTFALEN</longName>
+      <mediaDescription>
+        <shortDescription>WDR2 SÜDWESTFALEN</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/065f29d915c86dddcec3ebc5.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/061244d55fbcfd20ec07d077.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/3f9d56f52af81682600d2d4c.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/95c57ac26dba02c87925f7f4.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/7dfe3c3ffb7c72aebe6d6da4.png" />
+      </mediaDescription>
+      <link uri="https://www1.wdr.de/radio/wdr2/index.html" mimeValue="text/html" />
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10ec.db92.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="https://wdr-wdr2-suedwestfalen.icecastssl.wdr.de/wdr/wdr2/suedwestfalen/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu469dewdr" />
+    </service>
+    <service>
+      <shortName>WDR4 RHE</shortName>
+      <mediumName>WDR4 RHEINLAND</mediumName>
+      <longName>WDR4 RHEINLAND</longName>
+      <mediaDescription>
+        <shortDescription>WDR4 RHEINLAND</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9d5a99a8a1ca97438b5a50da.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/6d704164267474fe26a5e896.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/4d1fc52af594531f2f894bb0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0da1233df5996bea650db3e0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/09ed299f7e3250d339cef6e1.png" />
+      </mediaDescription>
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.d994.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu550dewdr" />
+    </service>
+    <service>
+      <shortName>WDR4 ML</shortName>
+      <mediumName>WDR4 MUENSTERL</mediumName>
+      <longName>WDR4 MUENSTERLAND</longName>
+      <mediaDescription>
+        <shortDescription>WDR4 MUENSTERLAND</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9d5a99a8a1ca97438b5a50da.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/6d704164267474fe26a5e896.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/4d1fc52af594531f2f894bb0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0da1233df5996bea650db3e0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/09ed299f7e3250d339cef6e1.png" />
+      </mediaDescription>
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.da94.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu551dewdr" />
+    </service>
+    <service>
+      <shortName>WDR4 RUH</shortName>
+      <mediumName>WDR4 RUHRGEBIET</mediumName>
+      <longName>WDR4 RUHRGEBIET</longName>
+      <mediaDescription>
+        <shortDescription>WDR4 RUHRGEBIET</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9d5a99a8a1ca97438b5a50da.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/6d704164267474fe26a5e896.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/4d1fc52af594531f2f894bb0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0da1233df5996bea650db3e0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/09ed299f7e3250d339cef6e1.png" />
+      </mediaDescription>
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.d694.0" cost="20" mimeValue="audio/aac" />
+      <bearer id="http://wdr-wdr4-live.icecast.wdr.de/wdr/wdr4/live/mp3/128/stream.mp3" cost="100" mimeValue="audio/mpeg" offset="2000" bitrate="128" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu552dewdr" />
+    </service>
+    <service>
+      <shortName>WDR4 AAC</shortName>
+      <mediumName>WDR4 AACHEN</mediumName>
+      <longName>WDR4 AACHEN</longName>
+      <mediaDescription>
+        <shortDescription>WDR4 AACHEN</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9d5a99a8a1ca97438b5a50da.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/6d704164267474fe26a5e896.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/4d1fc52af594531f2f894bb0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0da1233df5996bea650db3e0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/09ed299f7e3250d339cef6e1.png" />
+      </mediaDescription>
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10fa.d494.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu553dewdr" />
+    </service>
+    <service>
+      <shortName>WDR4 SW</shortName>
+      <mediumName>WDR4 SÜDWESTF</mediumName>
+      <longName>WDR4 SÜDWESTFALEN</longName>
+      <mediaDescription>
+        <shortDescription>WDR4 SÜDWESTFALEN</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9d5a99a8a1ca97438b5a50da.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/6d704164267474fe26a5e896.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/4d1fc52af594531f2f894bb0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0da1233df5996bea650db3e0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/09ed299f7e3250d339cef6e1.png" />
+      </mediaDescription>
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10ec.db94.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu555dewdr" />
+    </service>
+    <service>
+      <shortName>WDR4 OW</shortName>
+      <mediumName>WDR4 OW</mediumName>
+      <longName>WDR4 OW</longName>
+      <mediaDescription>
+        <shortDescription>WDR4 OW</shortDescription>
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="32" type="logo_colour_square" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/9d5a99a8a1ca97438b5a50da.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="32" width="112" type="logo_colour_rectangle" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/6d704164267474fe26a5e896.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="128" width="128" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/4d1fc52af594531f2f894bb0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="240" width="320" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/0da1233df5996bea650db3e0.png" />
+      </mediaDescription>
+      <mediaDescription>
+        <multimedia height="600" width="600" type="logo_unrestricted" mimeValue="image/png" url="http://dewdr.radiodns.ard.de/storage/09ed299f7e3250d339cef6e1.png" />
+      </mediaDescription>
+      <genre href="urn:tva:metadata:cs:ContentCS:2011:3.6.3.2">Easy Listening</genre>
+      <link uri="postal:Westdeutscher Rundfunk Köln/Appellhofplatz 1/Köln/50667/Germany 1" />
+      <bearer id="dab:de0.10ec.d594.0" cost="20" mimeValue="audio/aac" />
+      <radiodns fqdn="dewdr.radiodns.ard.de" serviceIdentifier="ebu556dewdr" />
+    </service>
+  </services>
+</serviceInformation>

@@ -1,0 +1,24 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "klarwelle"
+
+include ':app'
+include ':omriusb'
+// omri-usb working copy lives under omri-lib/ (built standalone too; see docs/findings-omri-build.md)
+project(':omriusb').projectDir = file('omri-lib/omriusb')
+include ':radiodns'
+// RadioDNS resolver working copy (vendored hradio/radiodns, LGPL) — official logos + IP bearers.
+project(':radiodns').projectDir = file('radiodns-lib/radiodns')

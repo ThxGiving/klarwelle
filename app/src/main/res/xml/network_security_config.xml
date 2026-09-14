@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext (http) is permitted because official broadcaster station logos delivered via the open
+  RadioDNS standard are frequently served over http (e.g. the German ARD RadioDNS hosts such as
+  dewdr.radiodns.ard.de). Blocking cleartext (the targetSdk>=28 default) silently dropped every
+  such logo, leaving only the few https ones. This replaces the blanket android:usesCleartextTraffic
+  manifest flag with an explicit, reviewable policy. No credentials or personal data travel over
+  these connections — only public logo images and broadcaster-published stream URLs.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

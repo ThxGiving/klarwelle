@@ -1,0 +1,47 @@
+apply plugin: 'com.android.library'
+
+// Vendored copy of hradio/radiodns (LGPL 2.1) — the open-source resolver behind the dead
+// `eu.hradio.core:radiodns` binary. Modernized for AGP 8 / compileSdk 34 and pointed at our
+// in-tree omri module for the org.omri.* service types. RadioVIS (STOMP/gozirra) is stripped —
+// we only need core lookup + RadioEPG SPI/SI (official logos + IP simulcast bearers).
+android {
+    namespace 'eu.hradio.core.radiodns'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 34
+        consumerProguardFiles 'proguard-rules.pro'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // The vendored source guards its logging with BuildConfig.DEBUG; AGP 8 no longer generates
+    // BuildConfig unless asked.
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    // org.omri.radioservice.* types (RadioService, RadioServiceDab, metadata) come from our
+    // in-tree omri working copy instead of the dead `org.omri:omribase` maven artifact.
+    implementation project(':omriusb')
+
+    implementation 'androidx.annotation:annotation:1.8.0'
+
+    // Pure-Java DNS with SRV/CNAME support that works on Android (the piece Android's own APIs
+    // lack below API 29). Alive on Maven Central.
+    implementation 'org.minidns:minidns-android21:0.4.0-alpha3'
+    implementation 'org.minidns:minidns-hla:0.4.0-alpha3'
+}

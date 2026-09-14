@@ -1,0 +1,28 @@
+# Build outputs
+**/build/
+**/.cxx/
+.gradle/
+.kotlin/
+*.log
+
+# Local config & secrets — never commit
+local.properties
+**/local.properties
+*.jks
+*.keystore
+
+# Release artefacts are attached to GitHub releases, not committed
+*.apk
+*.aab
+
+# IDE
+.idea/
+*.iml
+.claude/
+CLAUDE.md
+
+# Internal notes, investigations and plans stay out of the public repo
+docs/*
+!docs/datenschutz.md
+!docs/privacy.md
+mockups/
