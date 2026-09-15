@@ -445,10 +445,14 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                 if (!BuildConfig.DEBUG) _state.update { it.copy(fmAvailable = f.available) }
                 // Now that we know whether FM exists, settle the default band (Internet if nothing else).
                 reconcileBand()
-                if (!f.available) addError(
-                    "FM inaktiv: " + (f.bindError ?: "CarManager nicht gefunden") +
-                        (if (f.carManagerPresent) " (CarManager IST da)" else "")
-                )
+                // No CarManager at all is simply a device without an FM tuner (a tablet, a phone) —
+                // not a problem to show. A CarManager that exists but will not bind IS one: that is
+                // a head unit where FM should work.
+                if (!f.available) {
+                    val line = "FM inaktiv: " + (f.bindError ?: "CarManager nicht gefunden")
+                    if (f.carManagerPresent) addError("$line (CarManager IST da)")
+                    else Diag.write(appContext, DiagFile.FM, "$line — kein Fahrzeug-Tuner auf diesem Gerät\n", append = true)
+                }
                 launchCollect { f.state.collect(::onFm) }
                 // Ask the MCU to stream vehicle-status frames (temperature etc.) — as the ROM's
                 // "Fahrzeug" app does on screen open. A single request only yields ONE frame on this

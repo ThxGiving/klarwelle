@@ -372,6 +372,11 @@ private fun BandDabPage(
         progress = if (dabScanning) scanProgress / 100f else null,
         onClick = onScanDab,
     )
+    CheckRow(
+        stringResource(R.string.settings_show_signal),
+        stringResource(R.string.settings_show_signal_hint),
+        settings.showSignalStrength,
+    ) { v -> onChange { it.copy(showSignalStrength = v) } }
 
     // Service following lives here rather than under "playback": all three tiers start at DAB
     // (DAB->DAB, DAB->FM, DAB->internet), so without a tuner they are settings for nothing. Kept
@@ -1073,11 +1078,6 @@ private fun AppearancePage(
         selectedIndex = if (settings.autoRotate) 1 else 0,
         onSelect = { i -> onChange { it.copy(autoRotate = i == 1) } },
     )
-    CheckRow(
-        stringResource(R.string.settings_show_signal),
-        stringResource(R.string.settings_show_signal_hint),
-        settings.showSignalStrength,
-    ) { v -> onChange { it.copy(showSignalStrength = v) } }
     OptionRow(
         label = stringResource(R.string.settings_frontend),
         hint = frontends.firstOrNull { it.id == settings.frontendId }?.descriptionRes?.let { stringResource(it) },
