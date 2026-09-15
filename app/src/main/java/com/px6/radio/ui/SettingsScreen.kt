@@ -711,6 +711,11 @@ private fun AsaPage(
         stringResource(R.string.settings_asa_test_alerts_hint),
         settings.asaTestAlerts,
     ) { v -> onChange { it.copy(asaTestAlerts = v) } }
+    CheckRow(
+        stringResource(R.string.settings_asa_attention_tone),
+        stringResource(R.string.settings_asa_attention_tone_hint),
+        settings.asaAttentionTone,
+    ) { v -> onChange { it.copy(asaAttentionTone = v) } }
     InfoRow(
         stringResource(R.string.settings_note),
         stringResource(R.string.settings_asa_note_text),
@@ -1044,6 +1049,11 @@ private fun AudioPage(settings: Settings, onChange: ((Settings) -> Settings) -> 
         stringResource(R.string.settings_normalize_loudness_hint),
         settings.normalizeStreamLoudness,
     ) { v -> onChange { it.copy(normalizeStreamLoudness = v) } }
+    CheckRow(
+        stringResource(R.string.settings_ui_sounds),
+        stringResource(R.string.settings_ui_sounds_hint),
+        settings.uiSounds,
+    ) { v -> onChange { it.copy(uiSounds = v) } }
 }
 
 

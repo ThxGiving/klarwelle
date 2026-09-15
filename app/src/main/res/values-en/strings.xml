@@ -278,4 +278,9 @@
     <string name="settings_diagnostics_hint">Writes klarwelle-*.txt to the app folder and to a plugged-in USB stick — including location codes and listening history. Enable only to chase a fault.</string>
     <string name="settings_diagnostics_delete">Delete diagnostics files</string>
     <string name="settings_diagnostics_delete_hint">Removes all klarwelle-*.txt from the device and the stick.</string>
+    <string name="settings_ui_sounds">Interface sounds</string>
+    <string name="settings_ui_sounds_hint">Soft tick on keys, confirmation when a preset is stored, a cue when the radio switches source, a tone when a scan finishes</string>
+    <string name="settings_asa_attention_tone">Attention signal</string>
+    <string name="settings_asa_attention_tone_hint">Short signal tone before a warning is presented</string>
+    <string name="tiles_stream_failed">unreachable</string>
 </resources>

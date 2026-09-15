@@ -40,6 +40,10 @@ interface RadioActions {
     /** Open the station list (e.g. from the hardware "list" key). Default no-op for test fakes. */
     fun openStationList() {}
 
+    /** A key was pressed that only changes the frontend's own state (a panel, a picker) — lets the
+     *  radio play its key tick for it. Default no-op for test fakes. */
+    fun tick() {}
+
     /** Order the station list alphabetically or by group. */
     fun setSortMode(mode: SortMode)
 

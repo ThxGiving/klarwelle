@@ -278,4 +278,9 @@
     <string name="settings_diagnostics_hint">Scrive klarwelle-*.txt nella cartella dell\'app e su una chiavetta USB collegata, con codici di posizione e cronologia. Attivare solo per cercare un guasto.</string>
     <string name="settings_diagnostics_delete">Eliminare i file di diagnostica</string>
     <string name="settings_diagnostics_delete_hint">Rimuove tutti i klarwelle-*.txt dal dispositivo e dalla chiavetta.</string>
+    <string name="settings_ui_sounds">Suoni di comando</string>
+    <string name="settings_ui_sounds_hint">Tic leggero sui tasti, conferma al salvataggio, avviso quando la radio cambia sorgente, tono a fine ricerca</string>
+    <string name="settings_asa_attention_tone">Segnale di attenzione</string>
+    <string name="settings_asa_attention_tone_hint">Breve tono prima che venga mostrato un avviso</string>
+    <string name="tiles_stream_failed">non raggiungibile</string>
 </resources>

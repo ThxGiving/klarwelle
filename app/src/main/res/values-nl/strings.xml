@@ -279,4 +279,9 @@
     <string name="settings_diagnostics_hint">Schrijft klarwelle-*.txt naar de appmap en naar een aangesloten USB-stick — met locatiecodes en luistergeschiedenis. Alleen inschakelen om een fout op te sporen.</string>
     <string name="settings_diagnostics_delete">Diagnosebestanden verwijderen</string>
     <string name="settings_diagnostics_delete_hint">Verwijdert alle klarwelle-*.txt van het apparaat en de stick.</string>
+    <string name="settings_ui_sounds">Bedieningsgeluiden</string>
+    <string name="settings_ui_sounds_hint">Zachte tik bij toetsen, bevestiging bij opslaan, signaal als de radio van bron wisselt, toon als het zoeken klaar is</string>
+    <string name="settings_asa_attention_tone">Attentiesignaal</string>
+    <string name="settings_asa_attention_tone_hint">Korte signaaltoon voordat een waarschuwing wordt getoond</string>
+    <string name="tiles_stream_failed">onbereikbaar</string>
 </resources>

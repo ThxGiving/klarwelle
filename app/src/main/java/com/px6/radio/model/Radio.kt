@@ -177,6 +177,8 @@ data class Settings(
     /** Even out the loudness of internet streams (per-station learned gain via LoudnessEnhancer).
      *  On by default — quiet stations are lifted, loud ones stay natural. See IpPlayer/LoudnessMeter. */
     val normalizeStreamLoudness: Boolean = true,
+    /** Key ticks, preset-stored two-tone, following cues, scan-finished chime. */
+    val uiSounds: Boolean = false,
     /** Float the "now playing" mini-player over other apps while the radio plays in the background.
      *  Still needs the "draw over other apps" permission; this switch lets the user turn the behaviour
      *  off even when the permission is granted. See MainActivity.onStop / MiniPlayerOverlay. */
@@ -186,6 +188,8 @@ data class Settings(
     /** Evaluate Test-stage alerts (the ASA home-test). Off by default — per Table 1 the Test stage
      *  matches Negative for normal receivers; this makes it Positive so the home-test can be tried. */
     val asaTestAlerts: Boolean = false,
+    /** Attention signal before an alert is presented. */
+    val asaAttentionTone: Boolean = true,
     /** The receiver's 12-digit DAB location codes (asa.radio), for alert geo-matching. EMPTY by
      *  default and user-entered — never a shipped preset (they identify home addresses). Without any
      *  of them only whole-ensemble alerts (no location codes) are evaluated (§7.2.3).
@@ -299,6 +303,9 @@ data class RadioUiState(
      * signals that DAB and FM feed into the same pill.
      */
     val ipStreamLive: Boolean = false,
+    /** The stream could not be played at all — every retry failed (dead URL, no network). Cleared
+     *  the moment a stream is started again or audio arrives. */
+    val ipStreamFailed: Boolean = false,
     val presets: List<PresetSlot> = emptyList(),
     val screen: Screen = Screen.RADIO,
     val settings: Settings = Settings(),

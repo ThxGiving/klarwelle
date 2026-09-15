@@ -278,4 +278,9 @@
     <string name="settings_diagnostics_hint">Zapisuje klarwelle-*.txt w folderze aplikacji i na podlaczonym pendrive — z kodami lokalizacji i historia sluchania. Wlaczaj tylko do szukania bledow.</string>
     <string name="settings_diagnostics_delete">Usun pliki diagnostyczne</string>
     <string name="settings_diagnostics_delete_hint">Usuwa wszystkie klarwelle-*.txt z urzadzenia i pendrive.</string>
+    <string name="settings_ui_sounds">Dźwięki obsługi</string>
+    <string name="settings_ui_sounds_hint">Cichy klik przy klawiszach, potwierdzenie przy zapisie, sygnał gdy radio zmienia źródło, ton po zakończeniu wyszukiwania</string>
+    <string name="settings_asa_attention_tone">Sygnał uwagi</string>
+    <string name="settings_asa_attention_tone_hint">Krótki ton sygnałowy przed wyświetleniem ostrzeżenia</string>
+    <string name="tiles_stream_failed">nieosiągalny</string>
 </resources>

@@ -135,6 +135,8 @@ class RadioStore(context: Context) {
             autoFetchLogos = p[K.AUTO_FETCH_LOGOS] ?: true,
             mediaBroadcastLogos = p[K.MEDIA_BROADCAST_LOGOS] ?: true,
             normalizeStreamLoudness = p[K.NORMALIZE_LOUDNESS] ?: true,
+            uiSounds = p[K.UI_SOUNDS] ?: false,
+            asaAttentionTone = p[K.ASA_ATTENTION_TONE] ?: true,
             miniPlayerOverlay = p[K.MINI_PLAYER_OVERLAY] ?: true,
             asaEnabled = p[K.ASA_ENABLED] ?: true,
             asaTestAlerts = p[K.ASA_TEST_ALERTS] ?: false,
@@ -236,6 +238,8 @@ class RadioStore(context: Context) {
             e[K.AUTO_FETCH_LOGOS] = settings.autoFetchLogos
             e[K.MEDIA_BROADCAST_LOGOS] = settings.mediaBroadcastLogos
             e[K.NORMALIZE_LOUDNESS] = settings.normalizeStreamLoudness
+            e[K.UI_SOUNDS] = settings.uiSounds
+            e[K.ASA_ATTENTION_TONE] = settings.asaAttentionTone
             e[K.MINI_PLAYER_OVERLAY] = settings.miniPlayerOverlay
             e[K.ASA_ENABLED] = settings.asaEnabled
             e[K.ASA_TEST_ALERTS] = settings.asaTestAlerts
@@ -289,6 +293,8 @@ class RadioStore(context: Context) {
         val AUTO_FETCH_LOGOS = booleanPreferencesKey("auto_fetch_logos")
         val MEDIA_BROADCAST_LOGOS = booleanPreferencesKey("media_broadcast_logos")
         val NORMALIZE_LOUDNESS = booleanPreferencesKey("normalize_loudness")
+        val UI_SOUNDS = booleanPreferencesKey("ui_sounds")
+        val ASA_ATTENTION_TONE = booleanPreferencesKey("asa_attention_tone")
         val MINI_PLAYER_OVERLAY = booleanPreferencesKey("mini_player_overlay")
         val ASA_ENABLED = booleanPreferencesKey("asa_enabled")
         val ASA_TEST_ALERTS = booleanPreferencesKey("asa_test_alerts")

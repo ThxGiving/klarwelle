@@ -281,4 +281,9 @@
     <string name="settings_diagnostics_hint">Schreibt klarwelle-*.txt in den App-Ordner und auf einen eingesteckten USB-Stick — mit Standortcodes und Senderverlauf. Nur zur Fehlersuche einschalten.</string>
     <string name="settings_diagnostics_delete">Diagnosedateien löschen</string>
     <string name="settings_diagnostics_delete_hint">Entfernt alle klarwelle-*.txt vom Gerät und vom Stick.</string>
+    <string name="settings_ui_sounds">Bedientöne</string>
+    <string name="settings_ui_sounds_hint">Leiser Tick bei Tasten, Bestätigung beim Speichern, Hinweis wenn das Radio die Quelle wechselt, Ton wenn der Suchlauf fertig ist</string>
+    <string name="settings_asa_attention_tone">Aufmerksamkeitssignal</string>
+    <string name="settings_asa_attention_tone_hint">Kurzer Signalton, bevor eine Warnmeldung gezeigt wird</string>
+    <string name="tiles_stream_failed">nicht erreichbar</string>
 </resources>

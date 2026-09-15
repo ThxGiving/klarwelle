@@ -59,6 +59,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -106,12 +108,22 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         // The pill shows what is AUDIBLE, so it needs the player's own verdict, not the play/pause
         // intent: a dropped stream retrying in the background must not keep showing green.
         onPlayingChanged = { live ->
-            _state.update { if (it.ipStreamLive == live) it else it.copy(ipStreamLive = live) }
+            _state.update {
+                if (it.ipStreamLive == live && !(live && it.ipStreamFailed)) it
+                else it.copy(ipStreamLive = live, ipStreamFailed = it.ipStreamFailed && !live)
+            }
         }
         onLoudnessLearned = { url, gain -> rememberIpGain(url, gain) }
         // Mirror IP playback events (play/error/retry/playing) to a file — so a cold-boot stream
         // failure ("selected but silent after restart") is visible on the device without adb.
+        onFailed = { url ->
+            // Given up: the "tuning…" dots must not keep pulsing on a station that will never play.
+            clearTuning(null)
+            _state.update { if (it.ipStreamFailed) it else it.copy(ipStreamFailed = true) }
+            Diag.write(appContext, DiagFile.IP, "${currentClock()} stream aufgegeben: $url\n", append = true)
+        }
         onEvent = { msg ->
+            if (msg.startsWith("play ")) _state.update { if (it.ipStreamFailed) it.copy(ipStreamFailed = false) else it }
             runCatching {
                 Diag.write(appContext, DiagFile.IP, "${currentClock()} $msg\n", append = true)
             }
@@ -280,6 +292,10 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
     private val fmProbedAtMs = java.util.Collections.synchronizedMap(HashMap<String, Long>())
     @Volatile private var dabTunerHome: String? = null // DAB service to retune to after a probe
 
+    /** Only cue a return to DAB after we actually left it, and a scan end after one ran. */
+    private var followingSeen = false
+    private var scanSeen = false
+
     init {
         // Debug/demo on the emulator (has internet, but no DAB stick): pull the real RadioDNS logos
         // and IP simulcast URLs for the demo stations, so the logo path + IP fallback can be
@@ -296,6 +312,24 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         }
         // Drains the conflated audio-switch queue for the whole session.
         startAudioWorker()
+        // Sound cues for things the driver cannot see: the audio moving to another source and back,
+        // and a scan that finished while they looked elsewhere.
+        launchCollect {
+            _state.map { it.following }.distinctUntilChanged().collect { f ->
+                when (f) {
+                    FollowingState.FM_FALLBACK, FollowingState.IP_FALLBACK -> cue(com.px6.radio.audio.UiSounds.Cue.FOLLOW_DOWN)
+                    FollowingState.DAB_PRIMARY -> if (followingSeen) cue(com.px6.radio.audio.UiSounds.Cue.FOLLOW_UP)
+                    else -> {}
+                }
+                if (f != FollowingState.DAB_PRIMARY) followingSeen = true
+            }
+        }
+        launchCollect {
+            _state.map { it.dabScanning }.distinctUntilChanged().collect { scanning ->
+                if (!scanning && scanSeen) cue(com.px6.radio.audio.UiSounds.Cue.SCAN_DONE)
+                if (scanning) scanSeen = true
+            }
+        }
         viewModelScope.launch {
             // Clock + appearance ticker — started first so the UI is correct immediately.
             // If the VW profile syncs the vehicle time into the system clock, this is car time.
@@ -540,6 +574,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
     }
 
     override fun onCleared() {
+        runCatching { sounds.release() }
         // Clear BootGuard's breadcrumb FIRST. Reaching onCleared means we are shutting down in an
         // orderly way — whatever stage was still running was abandoned, not crashed. Without this,
         // quitting during a slow stage (the DAB one waits on the USB permission dialog) left the
@@ -573,6 +608,12 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         } finally {
             guard.end()
         }
+    }
+
+    /** Interface sounds — see [com.px6.radio.audio.UiSounds]. Gated here by the settings. */
+    private val sounds = com.px6.radio.audio.UiSounds(appContext)
+    private fun cue(c: com.px6.radio.audio.UiSounds.Cue) {
+        if (_state.value.settings.uiSounds) sounds.play(c)
     }
 
     private fun launchCollect(block: suspend () -> Unit) = viewModelScope.launch {
@@ -1020,6 +1061,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         userPickedBand = true
         val prev = _state.value
         if (prev.selectedBand == band) return
+        cue(com.px6.radio.audio.UiSounds.Cue.TICK)
         // A band change supersedes any switch in flight — otherwise the loader keeps spinning on a
         // tile in the band we just left, until the safety timeout.
         clearTuning(null)
@@ -1106,7 +1148,13 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         }
     }
 
-    override fun selectStation(station: Station) = play(station)
+    override fun selectStation(station: Station) { userTune(station) }
+
+    /** A deliberate station pick by hand: the key tick, then play. */
+    private fun userTune(station: Station) {
+        cue(com.px6.radio.audio.UiSounds.Cue.TICK)
+        play(station)
+    }
 
     private fun play(station: Station) {
         // Any deliberate playback — a tile tap (tunePreset), the list, next/prev, or restoring the
@@ -1698,7 +1746,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val list = s.steppableStations.ifEmpty { s.visibleStations }
         if (list.isEmpty()) return
         val idx = list.indexOfFirst { it.id == s.nowPlaying?.station?.id }.let { if (it < 0) 0 else it }
-        play(list[((idx + delta) % list.size + list.size) % list.size])
+        userTune(list[((idx + delta) % list.size + list.size) % list.size])
     }
 
     // ---- scanning, presets, logos ----
@@ -1778,6 +1826,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
 
     /** The MCU finished sweeping the band — let the scan coroutine finish normally (no cancel). */
     private fun onFmScanEnd() {
+        if (scanDone?.isCompleted == false) cue(com.px6.radio.audio.UiSounds.Cue.SCAN_DONE)
         scanDone?.complete(Unit)
     }
 
@@ -1973,6 +2022,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
     // ---- view state, settings, GPS ----
 
     override fun setViewMode(mode: ViewMode) {
+        cue(com.px6.radio.audio.UiSounds.Cue.TICK)
         _state.update { it.copy(viewMode = mode) }
     }
 
@@ -2000,15 +2050,19 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         stopFmScanFlag()
         val s = _state.value
         val st = s.presets.firstOrNull { it.index == index }?.stationId?.let { s.station(it) } ?: return
-        play(st)
+        userTune(st)
     }
 
     override fun assignPreset(index: Int) {
         _state.value = RadioLogic.assignPreset(_state.value, index)
+        cue(com.px6.radio.audio.UiSounds.Cue.CONFIRM)
         persist()
     }
 
+    override fun tick() = cue(com.px6.radio.audio.UiSounds.Cue.TICK)
+
     override fun openSettings() {
+        cue(com.px6.radio.audio.UiSounds.Cue.TICK)
         _state.update { it.copy(screen = Screen.SETTINGS) }
     }
 
@@ -2242,6 +2296,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
          * activity start; best-effort — never throws into the alert path.
          */
         override fun bringToForeground() {
+            // §7.6: the attention signal comes first — the driver hears the alert before reading it.
+            if (_state.value.settings.asaAttentionTone) sounds.play(com.px6.radio.audio.UiSounds.Cue.ALERT)
             runCatching {
                 appContext.startActivity(
                     android.content.Intent(appContext, com.px6.radio.MainActivity::class.java).addFlags(

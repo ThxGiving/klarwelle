@@ -278,4 +278,9 @@
     <string name="settings_diagnostics_hint">წერს klarwelle-*.txt აპის საქაღალდეში და ჩართულ USB-ზე — ადგილმდებარეობის კოდებითა და მოსმენის ისტორიით. ჩართეთ მხოლოდ ხარვეზის საძიებლად.</string>
     <string name="settings_diagnostics_delete">დიაგნოსტიკური ფაილების წაშლა</string>
     <string name="settings_diagnostics_delete_hint">შლის ყველა klarwelle-*.txt-ს მოწყობილობიდან და USB-დან.</string>
+    <string name="settings_ui_sounds">ინტერფეისის ხმები</string>
+    <string name="settings_ui_sounds_hint">მსუბუქი წკაპი ღილაკებზე, დადასტურება შენახვისას, სიგნალი წყაროს შეცვლისას, ტონი ძებნის დასრულებისას</string>
+    <string name="settings_asa_attention_tone">ყურადღების სიგნალი</string>
+    <string name="settings_asa_attention_tone_hint">მოკლე სიგნალი გაფრთხილების ჩვენებამდე</string>
+    <string name="tiles_stream_failed">მიუწვდომელია</string>
 </resources>

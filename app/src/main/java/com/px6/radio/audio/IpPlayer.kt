@@ -93,6 +93,9 @@ class IpPlayer(private val context: Context) {
     @Volatile
     var onPlayingChanged: ((Boolean) -> Unit)? = null
 
+    /** Main thread: the stream was given up on after the last retry (dead URL, no network). */
+    var onFailed: ((String?) -> Unit)? = null
+
     /** Diagnostic sink (main thread): "play …", "error …", "retry …", "playing" — the ViewModel
      *  mirrors it to a file so a cold-boot stream failure is visible on the device. */
     @Volatile
@@ -223,10 +226,11 @@ class IpPlayer(private val context: Context) {
     }
 
     private fun fail(p: ExoPlayer, onError: () -> Unit) {
+        val url = currentUrl
         if (player === p) { player = null; currentUrl = null; playing = false; onPlayingChanged?.invoke(false) }
         releaseLoudness()
         runCatching { p.release() }
-        main.post { onError() }
+        main.post { onError(); onFailed?.invoke(url) }
     }
 
     /** Ramp volume 0 -> [volume] so a handover isn't an abrupt cut. */

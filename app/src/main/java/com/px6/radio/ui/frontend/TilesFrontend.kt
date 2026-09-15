@@ -174,9 +174,9 @@ object TilesFrontend : RadioFrontend {
             FunctionBar(
                 state = state,
                 page = page,
-                onPage = { page = it },
-                onBand = { bandPicker = true },
-                onView = { viewPicker = true },
+                onPage = { actions.tick(); page = it },
+                onBand = { actions.tick(); bandPicker = true },
+                onView = { actions.tick(); viewPicker = true },
                 onSettings = actions::openSettings,
             )
         }
@@ -331,8 +331,10 @@ object TilesFrontend : RadioFrontend {
                     state.mutedNoReception -> " · " + stringResource(R.string.tiles_muted)
                     state.fmFallbackWeak -> " · " + stringResource(R.string.tiles_no_reception)
                     state.selectedBand == Band.DAB && state.noDabCoverage -> " · " + stringResource(R.string.tiles_no_reception)
-                    // Nothing to add for a silent stream: orange already says it, and "kein Empfang"
-                    // reads oddly for something that has no reception to begin with.
+                    // A stream that was given up on says so; a merely silent one (still retrying)
+                    // stays wordless — orange already says it, and "kein Empfang" reads oddly for
+                    // something that has no reception to begin with.
+                    state.selectedBand == Band.IP && state.ipStreamFailed -> " · " + stringResource(R.string.tiles_stream_failed)
                     else -> ""
                 }
                 StatusPill(

@@ -278,4 +278,9 @@
     <string name="settings_diagnostics_hint">Ecrit klarwelle-*.txt dans le dossier de l\'app et sur une cle USB branchee — avec codes de localisation et historique d\'ecoute. A activer seulement pour chercher une panne.</string>
     <string name="settings_diagnostics_delete">Supprimer les fichiers de diagnostic</string>
     <string name="settings_diagnostics_delete_hint">Supprime tous les klarwelle-*.txt de l\'appareil et de la cle.</string>
+    <string name="settings_ui_sounds">Sons d’interface</string>
+    <string name="settings_ui_sounds_hint">Tic discret sur les touches, confirmation à l’enregistrement, signal quand la radio change de source, tonalité à la fin de la recherche</string>
+    <string name="settings_asa_attention_tone">Signal d’attention</string>
+    <string name="settings_asa_attention_tone_hint">Brève tonalité avant l’affichage d’une alerte</string>
+    <string name="tiles_stream_failed">injoignable</string>
 </resources>
