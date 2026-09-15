@@ -36,6 +36,10 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.composed
 import com.px6.radio.ui.StationLogo
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.animation.togetherWith
@@ -535,6 +539,54 @@ object TilesFrontend : RadioFrontend {
         }
     }
 
+
+    /** Direction of the last station step (+1 next, -1 previous) — drives the slide animation. */
+    private var stepDir by mutableIntStateOf(1)
+
+    private fun stepNext(actions: RadioActions) { stepDir = 1; actions.next() }
+    private fun stepPrev(actions: RadioActions) { stepDir = -1; actions.prev() }
+
+    /**
+     * The now-playing content slides out in the direction of travel and the next station slides in
+     * from the other side — the swipe (or arrow) reads as a page turn, not a redraw.
+     */
+    @Composable
+    private fun SlidingStation(stationId: String?, content: @Composable () -> Unit) {
+        val dir = stepDir
+        AnimatedContent(
+            targetState = stationId,
+            transitionSpec = {
+                (slideInHorizontally(tween(260)) { w -> dir * w } + fadeIn(tween(200))) togetherWith
+                    (slideOutHorizontally(tween(220)) { w -> -dir * w } + fadeOut(tween(160)))
+            },
+            label = "station",
+        ) { _ -> content() }
+    }
+
+    /**
+     * Swipe across the now-playing area to change station — left for next, right for previous —
+     * exactly what the arrow keys do. One step per gesture, after [thresholdPx] of travel, so a
+     * nervous thumb doesn't skip three stations; the preset row below keeps its own swipe.
+     */
+    private fun Modifier.swipeStation(actions: RadioActions): Modifier = composed {
+        val thresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
+        pointerInput(actions) {
+            var travel = 0f
+            var fired = false
+            detectHorizontalDragGestures(
+                onDragStart = { travel = 0f; fired = false },
+                onHorizontalDrag = { change, dx ->
+                    travel += dx
+                    if (!fired && kotlin.math.abs(travel) > thresholdPx) {
+                        fired = true
+                        if (travel < 0) stepNext(actions) else stepPrev(actions)
+                    }
+                    change.consume()
+                },
+            )
+        }
+    }
+
     /* ----------------------------------------------------------- preset page */
 
     @OptIn(ExperimentalFoundationApi::class)
@@ -573,17 +625,19 @@ object TilesFrontend : RadioFrontend {
     ) {
         Column(Modifier.fillMaxSize()) {
             Row(
-                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(8)),
+                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(8)).swipeStation(actions),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StepArrow("‹", actions::prev)
-                Column(
-                    Modifier.weight(1f).padding(horizontal = skin.pad(8)),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    NowPlayingBlock(state, actions, pendingStore)
-                }
-                StepArrow("›", actions::next)
+                StepArrow("‹") { stepPrev(actions) }
+                Box(Modifier.weight(1f)) { SlidingStation(state.nowPlaying?.station?.id) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(horizontal = skin.pad(8)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        NowPlayingBlock(state, actions, pendingStore)
+                    }
+                } }
+                StepArrow("›") { stepNext(actions) }
             }
 
             when (state.viewMode) {
@@ -619,24 +673,44 @@ object TilesFrontend : RadioFrontend {
     ) {
         Column(Modifier.fillMaxSize()) {
             Column(
-                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(24)),
+                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(24)).swipeStation(actions),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
+                val st = state.nowPlaying?.station
+                SlidingStation(st?.id) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
                 // Upright there is room for the picture: the slideshow while one is running,
                 // otherwise the station logo — the landscape page has neither above the name.
-                val st = state.nowPlaying?.station
                 if (state.viewMode != ViewMode.RADIO_TEXT && st != null) {
-                    val art = Modifier.fillMaxWidth(0.4f).aspectRatio(1f)
-                    if (state.nowPlaying?.slideshowImage != null) Slideshow(state, art)
-                    else StationLogo(st, art.clip(RoundedCornerShape(skin.pad(28))).background(appColors.panel), initialsSize = skin.font(64.sp))
+                    // A slideshow is 4:3 and worth the width; a logo is a square and needs less. The
+                    // picture usually arrives a moment after the switch — crossfade it in over the logo.
+                    Crossfade(targetState = state.nowPlaying?.slideshowImage != null, animationSpec = tween(400), label = "art") { hasSlide ->
+                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                            if (hasSlide) {
+                                Slideshow(state, Modifier.fillMaxWidth(0.72f).aspectRatio(4f / 3f).clip(RoundedCornerShape(skin.pad(20))))
+                            } else {
+                                StationLogo(
+                                    st, Modifier.fillMaxWidth(0.4f).aspectRatio(1f).clip(RoundedCornerShape(skin.pad(28))).background(appColors.panel),
+                                    initialsSize = skin.font(64.sp),
+                                )
+                            }
+                        }
+                    }
                     Spacer(Modifier.height(skin.pad(24)))
                 }
-                NowPlayingBlock(state, actions, pendingStore)
-                Spacer(Modifier.height(skin.pad(24)))
-                Row(horizontalArrangement = Arrangement.spacedBy(skin.pad(24))) {
-                    StepArrow("‹", actions::prev)
-                    StepArrow("›", actions::next)
+                // Arrows flank the name, as in landscape — the thumb finds them at the edges.
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    StepArrow("‹") { stepPrev(actions) }
+                    Column(
+                        Modifier.weight(1f).padding(horizontal = skin.pad(8)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        NowPlayingBlock(state, actions, pendingStore)
+                    }
+                    StepArrow("›") { stepNext(actions) }
+                }
+                }
                 }
             }
             when (state.viewMode) {
