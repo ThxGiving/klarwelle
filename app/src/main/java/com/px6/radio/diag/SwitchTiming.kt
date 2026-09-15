@@ -41,7 +41,7 @@ object SwitchTiming {
     }
 
     private fun write(ctx: Context, line: String) =
-        runCatching { com.px6.radio.diag.Diag.write(ctx, "klarwelle-timing.txt", line + "\n", append = true) }
+        runCatching { com.px6.radio.diag.Diag.write(ctx, DiagFile.TIMING, line + "\n", append = true) }
 
     private fun clock(): String {
         val ms = System.currentTimeMillis()

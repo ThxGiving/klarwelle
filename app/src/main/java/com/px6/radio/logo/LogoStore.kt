@@ -11,6 +11,7 @@ import kotlin.math.max
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.px6.radio.model.Station
+import com.px6.radio.model.stationNameKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -213,9 +214,8 @@ class LogoStore(context: Context) {
     companion object {
         private const val TAG = "LogoStore"
 
-        /** Lowercase, strip everything but letters/digits: "WDR 2 Rheinland" -> "wdr2rheinland". */
-        fun normalize(name: String): String =
-            name.lowercase(Locale.ROOT).filter { it.isLetterOrDigit() }
+        /** See [stationNameKey] — kept as the store's own entry point so callers stay short. */
+        fun normalize(name: String): String = name.stationNameKey()
     }
 }
 

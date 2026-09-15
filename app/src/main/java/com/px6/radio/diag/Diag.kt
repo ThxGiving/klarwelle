@@ -15,6 +15,44 @@ import java.util.concurrent.TimeUnit
  *
  * Diagnostics must never make a caller wait: [write] queues, only [writeNow] does I/O inline.
  */
+
+/**
+ * The diagnostics files this app writes, one channel each. Naming them here keeps the file names in
+ * one place and makes the set visible: a channel nobody writes to any more is a channel to delete.
+ */
+enum class DiagFile(val fileName: String) {
+    /** Start-up stages, backend availability, the one-off environment dump. */
+    DIAG("klarwelle-diag.txt"),
+    /** Native/Java crash reports (written even with diagnostics off). */
+    CRASH("klarwelle-crash.txt"),
+    /** Liveness heartbeat while the app runs. */
+    ALIVE("klarwelle-alive.txt"),
+    /** omri-usb tuner events and device negotiation. */
+    OMRI("klarwelle-omri.txt"),
+    /** omri-usb native init trace (written synchronously — the process may die mid-stage). */
+    OMRI_INIT("klarwelle-omri-init.txt"),
+    /** FM tuner: RDS, seek, transport fallback, RadioDNS name lookups. */
+    FM("klarwelle-fm.txt"),
+    /** Internet band and RadioVIS. */
+    IP("klarwelle-ip.txt"),
+    /** RadioDNS logo/stream harvest reports. */
+    RADIODNS("klarwelle-radiodns.txt"),
+    /** DAB service links as received (FIG 0/6, 0/21). */
+    DABLINKS("klarwelle-dablinks.txt"),
+    /** FM -> DAB probe decisions. */
+    LINKS("klarwelle-links.txt"),
+    /** Service following decisions. */
+    FOLLOWING("klarwelle-following.txt"),
+    /** ASA / emergency-warning lifecycle. */
+    EWS("klarwelle-ews.txt"),
+    /** Source-switch timeline. */
+    TIMING("klarwelle-timing.txt"),
+    /** Raw vehicle CAN sync frames (outside temperature). */
+    SYNC("klarwelle-sync.txt"),
+    /** Hardware key events. */
+    KEYS("klarwelle-keys.txt"),
+}
+
 object Diag {
 
     /** Bound on queued writes; past it the newest lines are discarded (see the executor below). */
@@ -88,11 +126,11 @@ object Diag {
      * or unplugged volume can never stall the caller. Use [writeNow] where the write must have landed
      * before the caller continues (crash paths, where the process may not survive the queue).
      */
-    fun write(context: Context, name: String, text: String, append: Boolean = false) {
+    fun write(context: Context, file: DiagFile, text: String, append: Boolean = false) {
         if (!enabled) return
         // applicationContext so a queued task can never outlive and leak an Activity.
         val app = context.applicationContext
-        writer.execute { writeNow(app, name, text, append) }
+        writer.execute { writeNow(app, file, text, append) }
     }
 
     /** Remove every diagnostics file this app wrote, on every volume. Returns how many were deleted. */
@@ -111,8 +149,9 @@ object Diag {
     }
 
     /** Blocking write — see [write]. Only for paths that must not lose the line to a dying process. */
-    fun writeNow(context: Context, name: String, text: String, append: Boolean = false, force: Boolean = false) {
+    fun writeNow(context: Context, file: DiagFile, text: String, append: Boolean = false, force: Boolean = false) {
         if (!enabled && !force) return
+        val name = file.fileName
         // First touch of this file in this run: prefix the header. Only for appends — an overwriting
         // write replaces the whole file anyway, and its content is a self-contained report.
         val body = if (append && headered.add(name)) (sessionHeader ?: "") + text else text

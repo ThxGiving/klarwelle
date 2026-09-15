@@ -9,18 +9,6 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/**
- * Which arrangement the radio screen uses. Both are built in and read the same tokens, so every
- * skin styles both. A skin may pin one, or leave it to the user.
- */
-enum class LayoutMode {
-    /** Station list left, now-playing right. */
-    SPLIT,
-
-    /** Big centred station name, a row of favourite tiles, function bar at the bottom. */
-    TILES,
-}
-
 /** How panels, rows and buttons are drawn — the strongest single lever on a skin's character. */
 enum class SurfaceStyle {
     /** No fill, no border: elements are separated by whitespace alone. */
@@ -138,8 +126,6 @@ data class Skin(
     val dark: Boolean,
     val colors: RadioColors,
     val metrics: SkinMetrics = SkinMetrics.Default,
-    /** Layout this skin insists on, or null to leave the choice to the user. */
-    val layout: LayoutMode? = null,
     /** True for the skins compiled into the app. */
     val builtIn: Boolean = true,
 )

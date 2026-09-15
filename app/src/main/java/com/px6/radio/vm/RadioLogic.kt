@@ -8,6 +8,7 @@ import com.px6.radio.model.PresetSlot
 import com.px6.radio.model.RadioUiState
 import com.px6.radio.model.Station
 import com.px6.radio.model.TuningProfile
+import com.px6.radio.model.stationNameKey
 
 /**
  * A hardware command the reducer wants carried out. Kept as plain data so the state transitions
@@ -149,16 +150,13 @@ object RadioLogic {
      * each FM word a prefix of the DAB word ("ANT UNNA" ↔ "Antenne Unna", "BR KLASSIK" ↔ "BR-Klassik").
      */
     private fun nameMatches(fmName: String, dabName: String): Boolean {
-        val na = normalizeName(fmName)
-        if (na.length >= 3 && na == normalizeName(dabName)) return true
+        val na = fmName.stationNameKey()
+        if (na.length >= 3 && na == dabName.stationNameKey()) return true
         val a = tokenizeName(fmName)
         val b = tokenizeName(dabName)
         if (a.isEmpty() || a.size != b.size) return false
         return a.indices.all { i -> b[i].startsWith(a[i]) && (a[i] == b[i] || a[i].length >= 2) }
     }
-
-    /** Lowercase, letters/digits only: "WDR 2" and "wdr2" collapse onto the same key. */
-    private fun normalizeName(name: String): String = name.lowercase().filter { it.isLetterOrDigit() }
 
     private fun tokenizeName(name: String): List<String> =
         name.lowercase().split(Regex("[^\\p{L}\\p{N}]+")).filter { it.isNotEmpty() }

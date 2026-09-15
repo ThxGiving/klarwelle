@@ -12,7 +12,7 @@ import com.px6.radio.model.ViewMode
  * Everything a user interface may ask the radio to do — the complete command half of the contract
  * between backend and frontend.
  *
- * The backend (tuners, service following, cluster, persistence) lives behind this interface and
+ * The backend (tuners, service following, media session, persistence) lives behind this interface and
  * [RadioUiState]. A frontend receives exactly these two things and has no other way into the app,
  * which is what makes swapping the interface cheap and keeps the engine testable without any UI.
  */

@@ -1,5 +1,7 @@
 package com.px6.radio.car
 
+import com.px6.radio.diag.Diag
+import com.px6.radio.diag.DiagFile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -59,8 +61,8 @@ class CarInfo(context: Context) {
         val cmd = d[0].toInt() and 0xFF
         // Probe: log the first frame seen for each command byte, so the real layout is verifiable.
         if (loggedCmds.add(cmd) && loggedCmds.size <= 24) {
-            com.px6.radio.diag.Diag.write(
-                appContext, "klarwelle-sync.txt",
+            Diag.write(
+                appContext, DiagFile.SYNC,
                 "cmd=0x%02X len=%d %s\n".format(cmd, d.size, d.joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }),
                 append = true,
             )

@@ -3,6 +3,7 @@ package com.px6.radio.logo
 import android.content.Context
 import android.util.Log
 import com.px6.radio.model.Band
+import com.px6.radio.model.RadioDnsBearer
 import com.px6.radio.model.Station
 import eu.hradio.core.radiodns.PxRadioDnsLookup
 import java.net.HttpURLConnection
@@ -93,7 +94,7 @@ object RadioDnsLogos {
 
             val repSid = parseSid(group.first().id) ?: return@forEachIndexed
             // ECC from the ensemble (any station in it carries it) -> gcc derived per country.
-            val ecc = group.firstNotNullOfOrNull { it.ecc } ?: 0xE0
+            val ecc = group.firstNotNullOfOrNull { it.ecc } ?: RadioDnsBearer.DEFAULT_ECC
             tried.add(eid)
             ensemblesQueried++
             val result = try {
@@ -140,9 +141,7 @@ object RadioDnsLogos {
             val haveLogo = store.sourceRank(key) >= LogoSource.RADIODNS.rank
             if (!force && haveLogo && st.id in knownStreams) continue
             val pi = st.piCode!!
-            // gcc = PI country nibble + ECC (default 0xE0 = Germany), same derivation as DAB.
-            val ecc = st.ecc ?: 0xE0
-            val gcc = Integer.toHexString((pi ushr 12) and 0xF) + "%02x".format(ecc and 0xFF)
+            val gcc = RadioDnsBearer.fmGcc(pi, st.ecc)
             fmQueried++
             val res = try {
                 PxRadioDnsLookup.lookupFm(context, pi, st.frequencyKhz!!, gcc)

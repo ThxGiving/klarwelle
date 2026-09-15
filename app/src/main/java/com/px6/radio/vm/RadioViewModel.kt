@@ -18,6 +18,7 @@ import com.px6.radio.data.PersistedAnalog
 import com.px6.radio.data.RadioStore
 import com.px6.radio.diag.BootGuard
 import com.px6.radio.diag.Diag
+import com.px6.radio.diag.DiagFile
 import com.px6.radio.logo.LogoPack
 import com.px6.radio.logo.MediaBroadcastLogos
 import com.px6.radio.logo.LogoSource
@@ -38,6 +39,8 @@ import com.px6.radio.model.NowPlaying
 import com.px6.radio.model.PresetSlot
 import com.px6.radio.model.RadioUiState
 import com.px6.radio.model.Screen
+import com.px6.radio.model.RadioDnsBearer
+import com.px6.radio.model.stationNameKey
 import com.px6.radio.model.Settings
 import com.px6.radio.model.SortMode
 import com.px6.radio.model.Station
@@ -109,7 +112,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         // failure ("selected but silent after restart") is visible on the device without adb.
         onEvent = { msg ->
             runCatching {
-                Diag.write(appContext, "klarwelle-ip.txt", "${currentClock()} $msg\n", append = true)
+                Diag.write(appContext, DiagFile.IP, "${currentClock()} $msg\n", append = true)
             }
             // Mirror stream events into the switch timeline too — so "stream unstable at the start"
             // (buffering/retries) is visible against the handover timing.
@@ -623,7 +626,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             append("errors:\n")
             s.backendErrors.forEach { append(" - $it\n") }
         }
-        Diag.write(appContext, "klarwelle-diag.txt", text)
+        Diag.write(appContext, DiagFile.DIAG, text)
     }
 
     /** Re-enable all backends after a safe-mode disable (needs an app restart to take effect). */
@@ -749,6 +752,10 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         maybeResolveFmName(f)
     }
 
+    /** The ECC of the country we are in, as reported by the DAB ensembles in the station list. */
+    private fun knownEcc(): Int? =
+        _state.value.stations.mapNotNull { it.ecc }.groupingBy { it }.eachCount().maxByOrNull { it.value }?.key
+
     /** PI→name so we don't hammer RadioDNS: a resolved name is cached and reused for that PI. */
     private val fmNameByPi = java.util.concurrent.ConcurrentHashMap<Int, String>()
     @Volatile private var fmNameLookupPi = 0
@@ -762,9 +769,9 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         if (fmNameLookupPi == pi) return   // a lookup for this PI is already in flight
         fmNameLookupPi = pi
         viewModelScope.launch(Dispatchers.IO) {
-            // FM bearer FQDN: gcc = PI country nibble + ECC (Germany e0 → "de0"/"1e0", matching our
-            // DAB gcc derivation). freq in 100 kHz units, 5 digits.
-            val gcc = "${Integer.toHexString(pi).first()}e0"
+            // The tuner gives us no RDS ECC, so the country comes from the DAB ensembles around us
+            // (the ECC every DAB station carries); only with no DAB in the list at all is it Germany.
+            val gcc = RadioDnsBearer.fmGcc(pi, knownEcc())
             // RadioDNS FM frequency = units of 10 kHz, 5 digits: 87.8 MHz = 87800 kHz → 8780 → "08780"
             // (verified live: 08780.d392.de0.fm.radiodns.org → dewdr.radiodns.ard.de). Was khz/100.
             val freq5 = "%05d".format(khz / 10)
@@ -776,7 +783,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             val name = runCatching { PxRadioDnsLookup.harvestBearers(appContext, bearer) }.getOrNull()
                 ?.firstOrNull { svc -> svc.bearer.split("/").any { it.equals(piHex, ignoreCase = true) } }
                 ?.names?.firstOrNull { it.isNotBlank() }
-            runCatching { Diag.write(appContext, "klarwelle-fm.txt",
+            runCatching { Diag.write(appContext, DiagFile.FM,
                 "radiodns fm name $bearer -> ${name ?: "none"} (${PxRadioDnsLookup.lastDiag})\n", append = true) }
             if (name != null) fmNameByPi[pi] = name.also { applyFmName(khz, pi, it) }
             // Release the in-flight marker when nothing was found. It used to stay set for the PI,
@@ -923,7 +930,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             val newMsg = _state.value.ewsAlert?.messageText
             if (newMsg != null && newMsg != prevMsg) {
                 runCatching {
-                    com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+                    com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                         "${currentClock()} message: \"$newMsg\"" +
                             (if (d.slideshow != null) " [+SlideShow]" else "") + "\n", append = true)
                 }
@@ -939,7 +946,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
     private fun autoFetchRadioDnsLogos() {
         val s = _state.value.settings
         if (!s.radioDnsEnabled || !s.autoFetchLogos) {
-            Diag.write(appContext, "klarwelle-radiodns.txt",
+            Diag.write(appContext, DiagFile.RADIODNS,
                 "auto-fetch übersprungen: radioDnsEnabled=${s.radioDnsEnabled} autoFetchLogos=${s.autoFetchLogos}")
             return
         }
@@ -966,7 +973,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             // the real report had already been overwritten. Both are fixed: the counts now mean what
             // they say, and this guard reads them.
             val didWork = dns.ensemblesQueried > 0 || dns.fmQueried > 0
-            if (didWork || logoStore.count() == 0) Diag.write(appContext, "klarwelle-radiodns.txt", buildString {
+            if (didWork || logoStore.count() == 0) Diag.write(appContext, DiagFile.RADIODNS, buildString {
                 append("RadioDNS auto-fetch (nach Scan/Start)\n")
                 append("Netz aktiv: $net\n")
                 append("DAB-Sender: ${stations.count { it.band == Band.DAB }}\n")
@@ -1195,7 +1202,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                     val ep = runCatching { PxRadioDnsLookup.lookupVis(appContext, bearer) }.getOrNull()
                     // Log only on success — a cold-boot failure retries every few seconds and would
                     // otherwise spam the diag file.
-                    if (ep != null) runCatching { Diag.write(appContext, "klarwelle-ip.txt",
+                    if (ep != null) runCatching { Diag.write(appContext, DiagFile.IP,
                         "radiovis ${station.id} $bearer -> ${PxRadioDnsLookup.lastDiag}\n", append = true) }
                     ep?.let { RadioVisClient.Target(it.host, it.port, it.topicBase) }
                 },
@@ -1207,7 +1214,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                     if (_state.value.settings.radioVisSlideshow &&
                         _state.value.nowPlaying?.station?.id == station.id) fetchVisImage(url, station.id)
                 },
-                log = { m -> runCatching { Diag.write(appContext, "klarwelle-ip.txt", "$m\n", append = true) } },
+                log = { m -> Diag.write(appContext, DiagFile.IP, "$m\n", append = true) },
             ).run()
         }
     }
@@ -1267,9 +1274,9 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             for (bearer in seeds) {
                 val harvested = runCatching { PxRadioDnsLookup.harvestBearers(appContext, bearer) }
                     .getOrNull().orEmpty()
-                runCatching { Diag.write(appContext, "klarwelle-ip.txt",
+                runCatching { Diag.write(appContext, DiagFile.IP,
                     "harvest[$attempt] $bearer -> ${PxRadioDnsLookup.lastDiag}\n", append = true) }
-                for (svc in harvested) for (n in svc.names) byName.putIfAbsent(normName(n), svc)
+                for (svc in harvested) for (n in svc.names) byName.putIfAbsent(n.stationNameKey(), svc)
             }
         }
         if (byName.isEmpty()) return@launch   // network still down — retry on next IP play (flag unset)
@@ -1282,7 +1289,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val bearers = HashMap<String, String>()
         _state.value.stations.forEach { st ->
             if (st.band != Band.IP) return@forEach
-            val svc = byName[normName(st.name)] ?: return@forEach
+            val svc = byName[st.name.stationNameKey()] ?: return@forEach
             // Official per-station logo from the SI — replaces the shared broadcaster favicon (why all
             // BBC stations looked identical) with each service's own artwork.
             svc.logoUrl?.let { url ->
@@ -1291,7 +1298,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             if (st.radioDnsBearer == null) {
                 changed = true
                 bearers[st.id] = svc.bearer
-                runCatching { Diag.write(appContext, "klarwelle-ip.txt", "harvest match ${st.name} -> ${svc.bearer}\n", append = true) }
+                Diag.write(appContext, DiagFile.IP, "harvest match ${st.name} -> ${svc.bearer}\n", append = true)
             }
         }
         if (changed) {
@@ -1318,9 +1325,6 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         }.getOrNull() ?: return
         runCatching { logoStore.put(logoStore.key(station), bytes, LogoSource.RADIODNS) }
     }
-
-    /** Normalised station name for matching SI names to our catalog (case/space/punctuation-free). */
-    private fun normName(s: String): String = s.lowercase().filter { it.isLetterOrDigit() }
 
     /** Fetch a RadioVIS SHOW image and show it in the now-playing card (same field as DAB slideshow). */
     private fun fetchVisImage(url: String, stationId: String) = viewModelScope.launch(Dispatchers.IO) {
@@ -1470,7 +1474,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             if (np.id != noDabCounterpartLogged) {
                 noDabCounterpartLogged = np.id
                 runCatching {
-                    Diag.write(appContext, "klarwelle-links.txt",
+                    Diag.write(appContext, DiagFile.LINKS,
                         "${currentClock()} FM->DAB: kein DAB-Gegenstueck fuer ${np.name} " +
                             "(${khz / 1000.0} MHz, PI ${np.piCode?.let { "0x%04X".format(it) } ?: "—"})\n",
                         append = true)
@@ -1518,7 +1522,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             // could not be told apart from "it looked and DAB was too weak" — and the probe runs
             // only once per station per session, so there was no second chance to observe either.
             runCatching {
-                Diag.write(appContext, "klarwelle-links.txt", buildString {
+                Diag.write(appContext, DiagFile.LINKS, buildString {
                     append(currentClock()).append(" FM->DAB Probe: ").append(np.name)
                     append(" -> ").append(candidate.name)
                     append("  Balken ").append(bars).append('/').append(FM_TO_DAB_MIN_BARS)
@@ -1679,7 +1683,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             if (d != 0) {
                 // Diagnostic: how many raw detent events collapsed into this one step (confirms the
                 // knob spam rate on the device).
-                runCatching { Diag.write(appContext, "klarwelle-fm.txt", "knob: $n events -> net $d\n", append = true) }
+                Diag.write(appContext, DiagFile.FM, "knob: $n events -> net $d\n", append = true)
                 step(d)
             }
         }
@@ -1831,7 +1835,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         // past failure, picks up stations a broadcaster added), and refresh internet logos.
         viewModelScope.launch(Dispatchers.IO) {
             store.clearVisHarvested()
-            runCatching { Diag.write(appContext, "klarwelle-ip.txt", "radiodns refresh requested\n", append = true) }
+            Diag.write(appContext, DiagFile.IP, "radiodns refresh requested\n", append = true)
         }
         harvestRadioVisBearers(force = true)
         fetchInternetLogos()
@@ -2021,7 +2025,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                 val text = gpsCodeText(c)
                 _state.update { st -> if (st.asaGpsCode == text) st else st.copy(asaGpsCode = text) }
                 runCatching {
-                    com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+                    com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                         "${currentClock()} GPS location code → $text\n", append = true)
                 }
             }
@@ -2135,7 +2139,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         runCatching {
             val eid = target.id.substringBefore('.')
             val how = if (s.ewsEnsembleIds.isEmpty()) "discover" else "known"
-            com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                 "${currentClock()} park DAB tuner on ensemble $eid ($how)\n", append = true)
         }
     }
@@ -2223,7 +2227,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             if (!ewsOffLogged) {
                 ewsOffLogged = true
                 runCatching {
-                    Diag.write(appContext, "klarwelle-ews.txt",
+                    Diag.write(appContext, DiagFile.EWS,
                         "${currentClock()} verworfen: Katastrophenwarnung ist in den Einstellungen aus\n",
                         append = true)
                 }
@@ -2257,7 +2261,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                     if (key != ewsRejectedKey) {
                         ewsRejectedKey = key
                         runCatching {
-                            com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt", buildString {
+                            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS, buildString {
                                 append(currentClock()).append(" kein Treffer: ")
                                 append(alert.description).append('\n')
                                 append("    Stufe ").append(alert.stage)
@@ -2332,7 +2336,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                     st.copy(asaHistory = (listOf(currentClock() to line) + st.asaHistory)
                         .take(ASA_HISTORY_MAX))
                 }
-                com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+                com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                     "${currentClock()} MATCH → present: ${alert.description}\n", append = true)
                 // A genuinely new alert must restart the timeout even if the previous one was armed
                 // less than a second ago — clear the throttle stamp so armEws… cannot skip this one.
@@ -2374,7 +2378,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             st.copy(ewsAlert = a.copy(ended = false))
         }
         runCatching {
-            com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                 "${currentClock()} Warnung wird erneut ausgestrahlt — Ton zurueck auf SubCh=${alert.subChannelId}\n",
                 append = true)
         }
@@ -2408,7 +2412,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             st.copy(ewsAlert = a.copy(ended = true, timeoutArmedAtMs = 0L, timeoutMs = 0L))
         }
         runCatching {
-            com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                 "${currentClock()} End-Phase — Ton zurueck, Meldung bleibt bis der Nutzer schliesst\n",
                 append = true)
         }
@@ -2462,7 +2466,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             d.state.value.nowPlayingId == alertId
         ) {
             runCatching {
-                com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+                com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                     "${currentClock()} alert audio already playing (subch=$subCh, service=$alertId) — no switch\n", append = true)
             }
             return
@@ -2475,7 +2479,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                 .onFailure { android.util.Log.w(TAG, "EWS audio handover failed: ${it.message}") }
         }
         runCatching {
-            com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                 "${currentClock()} audio handover → alert subch=$subCh service=$alertId\n", append = true)
         }
     }
@@ -2509,7 +2513,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         ewsDismissedKey = ewsShownKey
         ewsDismissedStage = ewsShownStage
         runCatching {
-            com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt",
+            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
                 "${currentClock()} user closed alert (key=$ewsDismissedKey stage=$ewsDismissedStage)\n", append = true)
         }
         clearEwsAlert(keepDismissal = true)
@@ -2648,18 +2652,15 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         if (missing.isEmpty()) return
         val found = HashMap<String, String>()
         for (st in missing) {
-            // gcc = country id nibble of the SId + ECC — the same pair RadioDNS itself is keyed on.
             val sid = runCatching { st.id.substringAfter('.').toInt(16) }.getOrNull()
-            val gcc = sid?.let {
-                Integer.toHexString((it ushr 12) and 0xF) + "%02x".format((st.ecc ?: 0xE0) and 0xFF)
-            }
+            val gcc = sid?.let { RadioDnsBearer.dabGcc(it, st.ecc) }
             val url = InternetRadio.findSimulcast(st.name, InternetRadio.countryForGcc(gcc)) ?: continue
             found[st.id] = url
         }
         // One appended block rather than a line per hit, so the section is recognisable in the file
         // and a run that found nothing says so instead of leaving the reader guessing.
         runCatching {
-            Diag.write(appContext, "klarwelle-radiodns.txt", buildString {
+            Diag.write(appContext, DiagFile.RADIODNS, buildString {
                 append("\nSimulcast-Suche (radio-browser), fuer Sender ohne RadioDNS-Stream:\n")
                 append("  geprueft: ${missing.size}  gefunden: ${found.size}\n")
                 found.forEach { (id, url) -> append("  ").append(id).append(" -> ").append(url).append('\n') }
@@ -2709,7 +2710,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         } ?: "—"
         runCatching {
             Diag.write(
-                appContext, "klarwelle-following.txt",
+                appContext, DiagFile.FOLLOWING,
                 buildString {
                     append("following=").append(f.following)
                     append(" · coverage=").append(!f.noDabCoverage)
@@ -2770,7 +2771,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val dab = stations.filter { it.band == Band.DAB }
         val linkedCount = dab.count { it.linkedFmFrequencyKhz != null || it.linkedFmPi != null }
         runCatching {
-            Diag.write(appContext, "klarwelle-links.txt", buildString {
+            Diag.write(appContext, DiagFile.LINKS, buildString {
                 append("DAB: ").append(dab.size).append(" · verknüpft: ").append(linkedCount).append('\n')
                 append("FM-PI-Karte (").append(fm.count { it.piCode != null }).append(" mit PI):\n")
                 fm.forEach { s ->

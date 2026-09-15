@@ -3,6 +3,7 @@ package com.px6.radio.internet
 import android.util.Log
 import com.px6.radio.model.Band
 import com.px6.radio.model.Station
+import com.px6.radio.model.stationNameKey
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -259,7 +260,7 @@ object InternetRadio {
      * Returns null rather than a doubtful guess: no fallback is better than the wrong station.
      */
     suspend fun findSimulcast(name: String, countryCode: String?): String? = withContext(Dispatchers.IO) {
-        val target = normalizeName(name)
+        val target = name.stationNameKey()
         if (target.length < 3) return@withContext null
         val enc = URLEncoder.encode(name.trim(), "UTF-8")
         val cc = countryCode?.takeIf { it.length == 2 }?.let { "&countrycode=$it" }.orEmpty()
@@ -269,17 +270,13 @@ object InternetRadio {
             val arr = JSONArray(String(body, Charsets.UTF_8))
             for (i in 0 until arr.length()) {
                 val o = arr.optJSONObject(i) ?: continue
-                if (normalizeName(o.optString("name")) != target) continue
+                if (o.optString("name").stationNameKey() != target) continue
                 val url = o.optString("url_resolved").ifBlank { o.optString("url") }.trim()
                 if (url.startsWith("http")) return@runCatching url
             }
             null
         }.getOrNull()
     }
-
-    /** Comparison form for station names: letters and digits only, case-folded. */
-    internal fun normalizeName(s: String): String =
-        s.lowercase(Locale.ROOT).filter { it.isLetterOrDigit() }
 
     /**
      * ISO country for a RadioDNS **gcc** (country id nibble + ECC), for the [findSimulcast] filter.

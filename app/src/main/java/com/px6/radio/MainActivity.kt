@@ -1,5 +1,7 @@
 package com.px6.radio
 
+import com.px6.radio.diag.Diag
+import com.px6.radio.diag.DiagFile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -225,8 +227,8 @@ class MainActivity : ComponentActivity() {
     override fun dispatchKeyEvent(event: android.view.KeyEvent): Boolean {
         if (event.action == android.view.KeyEvent.ACTION_DOWN) {
             runCatching {
-                com.px6.radio.diag.Diag.write(
-                    this, "klarwelle-keys.txt",
+                Diag.write(
+                    this, DiagFile.KEYS,
                     "key down code=${event.keyCode} (${android.view.KeyEvent.keyCodeToString(event.keyCode)}) scan=${event.scanCode}\n",
                     append = true,
                 )

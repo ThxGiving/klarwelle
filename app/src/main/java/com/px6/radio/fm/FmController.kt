@@ -7,6 +7,7 @@ import android.os.HandlerThread
 import android.os.Message
 import android.util.Log
 import com.px6.radio.diag.Diag
+import com.px6.radio.diag.DiagFile
 import com.px6.radio.diag.HiddenApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -90,7 +91,7 @@ class FmController(
         val text = synchronized(fmTrace) {
             val s = fmTrace.toString(); fmTrace.setLength(0); traceLines = 0; s
         }
-        if (text.isNotEmpty()) runCatching { Diag.write(appContext, "klarwelle-fm.txt", text, append = true) }
+        if (text.isNotEmpty()) Diag.write(appContext, DiagFile.FM, text, append = true)
     }
 
     /** Append one bounded trace line (timestamped) and schedule a debounced flush to the stick. */
@@ -271,7 +272,7 @@ class FmController(
             // APPEND a session header (don't truncate) — a reboot must not wipe the previous session's
             // FM/RDS trace ("FM had RDS text but it's not in the log" = an earlier session's data lost
             // to the per-boot truncate). Append is torn-write-safe; the user can clear the file.
-            runCatching { Diag.write(appContext, "klarwelle-fm.txt", "\n=== FM session start ${clock()} ===\n", append = true) }
+            Diag.write(appContext, DiagFile.FM, "\n=== FM session start ${clock()} ===\n", append = true)
             trace("bound: attach(Radio,KeyDown) ok, ctl_radio_rds=1")
             handler?.postDelayed(snapshot, SNAPSHOT_MS)   // periodic FM/RDS ground-truth snapshot
             Log.i(TAG, "CarManager bound — FM available")

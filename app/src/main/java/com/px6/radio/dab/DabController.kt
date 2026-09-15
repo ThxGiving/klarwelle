@@ -1,5 +1,7 @@
 package com.px6.radio.dab
 
+import com.px6.radio.diag.Diag
+import com.px6.radio.diag.DiagFile
 import android.content.Context
 import android.util.Log
 import com.px6.radio.audio.DabAudioSink
@@ -150,7 +152,7 @@ class DabController(private val appContext: Context) :
             val ts = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
             // writeNow: the point of this log is the LAST step before a native crash — a queued write
             // would still be in flight when the SIGSEGV takes the process down.
-            com.px6.radio.diag.Diag.writeNow(appContext, "klarwelle-omri-init.txt", "$ts $msg\n", append = true)
+            Diag.writeNow(appContext, DiagFile.OMRI_INIT, "$ts $msg\n", append = true)
         }
     }
 
@@ -446,7 +448,7 @@ class DabController(private val appContext: Context) :
                     append('\n')
                 }
             }
-            com.px6.radio.diag.Diag.write(appContext, "klarwelle-dablinks.txt", text)
+            Diag.write(appContext, DiagFile.DABLINKS, text)
         }
         // Copy the native omri log (std::cout tee, written to internal storage) onto the stick, so the
         // FIC/FIG/tuner/scan native output is readable without adb.
@@ -460,8 +462,8 @@ class DabController(private val appContext: Context) :
         if (now - lastOmriLogCopyMs >= OMRI_LOG_COPY_INTERVAL_MS) {
             lastOmriLogCopyMs = now
             runCatching {
-                val internal = java.io.File(appContext.filesDir, "klarwelle-omri.txt")
-                if (internal.exists()) com.px6.radio.diag.Diag.write(appContext, "klarwelle-omri.txt", internal.readText())
+                val internal = java.io.File(appContext.filesDir, DiagFile.OMRI.fileName)
+                if (internal.exists()) Diag.write(appContext, DiagFile.OMRI, internal.readText())
             }
         }
     }
@@ -565,7 +567,7 @@ class DabController(private val appContext: Context) :
         if (!heartbeat || logHeartbeat) {
             runCatching {
                 val ts = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US).format(java.util.Date())
-                com.px6.radio.diag.Diag.write(appContext, "klarwelle-ews.txt", "$ts ${alert.description}\n", append = true)
+                Diag.write(appContext, DiagFile.EWS, "$ts ${alert.description}\n", append = true)
             }
         }
         if (!heartbeat) {
