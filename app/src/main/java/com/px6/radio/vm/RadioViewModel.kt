@@ -31,6 +31,7 @@ import com.px6.radio.fm.FmState
 import com.px6.radio.fm.SwcKey
 import com.px6.radio.following.ServiceFollowingEngine
 import com.px6.radio.internet.InternetRadio
+import com.px6.radio.ews.EwsAlertEngine
 import com.px6.radio.ews.EwsMatcher
 import com.px6.radio.model.AsaStatus
 import com.px6.radio.model.Band
@@ -916,7 +917,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
 
         // While the alert audio (the handed-over service) plays, surface its live DLS + SlideShow as
         // the alert message in the overlay (§7.6.2 — present the PAD of the alert service).
-        val svcId = ewsAlertServiceId
+        val svcId = ews.alertServiceId
         if (svcId != null && d.nowPlayingId == svcId) {
             val prevMsg = _state.value.ewsAlert?.messageText
             _state.update { st ->
@@ -1595,6 +1596,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         restoreDabTuner()
     }
 
+    // ---- exit, transport, hardware keys ----
+
     /** True once the user confirmed quitting — MainActivity observes this and finishes, which runs
      *  [onCleared] and tears every backend down (no leaked DAB audio). */
     private val _shouldFinish = MutableStateFlow(false)
@@ -1697,6 +1700,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val idx = list.indexOfFirst { it.id == s.nowPlaying?.station?.id }.let { if (it < 0) 0 else it }
         play(list[((idx + delta) % list.size + list.size) % list.size])
     }
+
+    // ---- scanning, presets, logos ----
 
     override fun scanDab() {
         // Clear the DAB list first — a rescan starts fresh instead of merging onto the old services
@@ -1910,6 +1915,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         _state.update { it.copy(logoCount = 0, logoStatus = "Alle Logos gelöscht") }
     }
 
+    // ---- debug hooks (emulator / adb) ----
+
     /**
      * Debug/emulator only (triggered by the DEBUG_IP_PLAY broadcast): play the current DAB station's
      * RadioDNS IP simulcast directly and show the IP-fallback state. On the emulator there is no DAB
@@ -1962,6 +1969,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             _state.update { it.copy(ewsAlert = it.ewsAlert?.copy(messageText = messageText)) }
         }
     }
+
+    // ---- view state, settings, GPS ----
 
     override fun setViewMode(mode: ViewMode) {
         _state.update { it.copy(viewMode = mode) }
@@ -2093,6 +2102,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             dab?.ewsLastFrameElapsedMs ?: 0L, d?.currentTunerEnsembleId, d?.ewsEnsembleIds ?: emptySet()))
     }
 
+    // ---- ASA monitoring: parking the idle tuner on an EWS-capable ensemble ----
+
     @Volatile private var dabParkedForEws = false
 
     /**
@@ -2189,364 +2200,82 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         parkDabForEwsMonitoring(allowDiscovery = true)
     }
 
-    // ---- ASA / EWS alert engine (ETSI TS 104 089 §7.5 matching + §7.6 lifecycle; M2: display only) ----
-
-    // The single active alert's sub-channel (-1 for an other-ensemble alert, -2 = none) + incident.
-    @Volatile private var ewsActiveSubCh = -2
-    // Identity (subCh + incident) of the alert currently on screen, to coalesce repeated Trigger FIGs.
-    @Volatile private var ewsShownKey = -1
-    // Raw stage of the alert on screen — remembered so an ESCALATION of the same incident can still
-    // break through a user dismissal.
-    @Volatile private var ewsShownStage = -1
-    // What the user closed by hand (§7.6.4), and at which stage. A Trigger repeats 10-30x/s, so
-    // without this the overlay sprang back on the very next FIG and could not be got rid of during a
-    // burst. Forgotten once the alert really ends (End phase) or stops being broadcast (timeout).
-    @Volatile private var ewsDismissedKey = -1
-    @Volatile private var ewsDismissedStage = -1
-    // Last time the clear-timeout was (re)armed — throttles the per-repeat cancel/relaunch to ≤1/s.
-    @Volatile private var ewsLastArmMs = 0L
-    private var ewsClearJob: kotlinx.coroutines.Job? = null
-    /** Last alert key already explained as a non-match, so the ~10-30/s repeat rate logs once. */
-    @Volatile private var ewsRejectedKey = Int.MIN_VALUE
-    /** Whether "ASA is switched off" has already been recorded, so it is said once, not per frame. */
-    @Volatile private var ewsOffLogged = false
-    // Audio handover (§7.6): whether we switched playback to the alert sub-channel, and the station to
-    // return to when the alert ends. Empty string = nothing was playing.
-    @Volatile private var ewsHandoverDone = false
-    @Volatile private var ewsSavedStationId: String? = null
-    // The alert service we handed over to — while it plays, its DLS/SlideShow is the alert message.
-    @Volatile private var ewsAlertServiceId: String? = null
-
-    private fun onEwsAlert(alert: org.omri.tuner.DabEwsAlert) {
-        val s = _state.value.settings
-        if (!s.asaEnabled) {
-            // Say it once per run. Silently dropping a warning because a setting is off is a
-            // legitimate outcome, but an unrecorded one is indistinguishable from a broken decoder —
-            // and the decoder-level line above says an alert DID arrive. Now the file says why it
-            // went no further.
-            if (!ewsOffLogged) {
-                ewsOffLogged = true
-                runCatching {
-                    Diag.write(appContext, DiagFile.EWS,
-                        "${currentClock()} verworfen: Katastrophenwarnung ist in den Einstellungen aus\n",
-                        append = true)
-                }
-            }
-            return
-        }
-        ewsOffLogged = false
-        // Pre-trigger is inter-ensemble timing only — consumer receivers ignore it (§7.2.2.3).
-        when (alert.form) {
-            org.omri.tuner.DabEwsAlert.FORM_TRIGGER -> {
-                // Receivability (§7.5.2): a tuned-ensemble alert is on the ensemble we're tuned to
-                // (positive); an OE alert only if that ensemble is in tuning memory (a known station).
-                val receivable = if (alert.isOtherEnsembleAlert) {
-                    _state.value.stations.any {
-                        it.band == Band.DAB && it.id.substringBefore('.').toIntOrNull(16) == alert.ensembleId
-                    }
-                } else true
-                if (!receivable) return
-                // The fixed codes the user entered PLUS the live one derived from where the car is.
-                // Any of them matching is a match — a wider receiver area can add an alert, never
-                // hide one, which is the safe direction for §7.5.4.
-                val receiverCodes = EwsMatcher.parseReceiverCodes(s.asaLocationCodes) +
-                    listOfNotNull(gpsLocation.code.takeIf { s.asaFollowGps })
-                val play = EwsMatcher.shouldPlay(
-                    alert.stage, s.asaTestAlerts, alert.locationCodes.toList(), receiverCodes)
-                if (!play) {
-                    // Say WHY, once per alert. A warning that is silently discarded is the worst
-                    // possible outcome of this whole feature, and until now the log recorded only
-                    // the positives — leaving no way to tell "correctly ignored" from "broken".
-                    val key = (alert.subChannelId shl 4) xor (alert.incidentId and 0xF)
-                    if (key != ewsRejectedKey) {
-                        ewsRejectedKey = key
-                        runCatching {
-                            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS, buildString {
-                                append(currentClock()).append(" kein Treffer: ")
-                                append(alert.description).append('\n')
-                                append("    Stufe ").append(alert.stage)
-                                append(" (Testmeldungen ").append(if (s.asaTestAlerts) "an" else "aus")
-                                append(") -> ")
-                                append(if (EwsMatcher.stageMatches(alert.stage, s.asaTestAlerts)) "ok" else "abgelehnt")
-                                append('\n')
-                                append("    Warngebiet: ")
-                                append(alert.locationCodes.toList().takeIf { it.isNotEmpty() }
-                                    ?.joinToString(", ") ?: "ganzes Ensemble")
-                                append('\n')
-                                append("    Eigene Codes: ")
-                                append(receiverCodes.takeIf { it.isNotEmpty() }
-                                    ?.joinToString(", ") { c ->
-                                        "Z${c.zone}:" + c.digits.joinToString("") { d -> d.toString(16).uppercase() }
-                                    } ?: "keine")
-                                append("  (GPS ").append(if (s.asaFollowGps) "an" else "aus")
-                                append(", fest: ").append(s.asaLocationCodes.size).append(")\n")
-                            }, append = true)
-                        }
-                    }
-                    return
-                }
-                // Coalesce the FIG's high repetition rate (~10–30×/s during a Trigger burst): once an
-                // alert is on screen, a repeat of the SAME alert only refreshes the safety timeout —
-                // it must not re-run the service/label lookup, state update, MATCH log, foreground grab
-                // or handover every frame (that per-repeat work was heavy enough to risk an ANR).
-                val key = (alert.subChannelId shl 4) xor (alert.incidentId and 0xF)
-                if (_state.value.ewsAlert != null && key == ewsShownKey) {
-                    if (!reviveEndedAlert(alert)) armEwsClearTimeout()
-                    return
-                }
-                // The user closed THIS alert. Honour that: keep only the safety timeout running (so
-                // the dismissal is forgotten once the broadcast stops) and do not present again. An
-                // escalation of the same incident — a different stage — still gets through.
-                if (key == ewsDismissedKey && alert.stage == ewsDismissedStage) {
-                    armEwsClearTimeout()
-                    return
-                }
-                ewsShownKey = key
-                ewsShownStage = alert.stage
-                ewsActiveSubCh = if (alert.isOtherEnsembleAlert) -1 else alert.subChannelId
-                // §7.6.2: display the alert service label. For a tuned-ensemble alert we can resolve
-                // it from tuning memory via the sub-channel; null when unknown (audio never waits on it).
-                val alertServiceId = if (!alert.isOtherEnsembleAlert)
-                    dab?.findServiceBySubChannel(alert.subChannelId) else null
-                val label = alertServiceId?.let { id ->
-                    _state.value.stations.firstOrNull { it.id == id }?.name
-                }
-                val wasShowing = _state.value.ewsAlert != null
-                _state.update {
-                    it.copy(ewsAlert = com.px6.radio.model.EwsAlertUi(
-                        stageName = ewsStageName(alert.stage, alert.isTest),
-                        isTest = alert.isTest,
-                        incidentId = alert.incidentId,
-                        subChId = alert.subChannelId,
-                        otherEnsemble = alert.isOtherEnsembleAlert,
-                        description = alert.description,
-                        serviceLabel = label,
-                        timeoutArmedAtMs = android.os.SystemClock.elapsedRealtime(),
-                        timeoutMs = EWS_ALERT_TIMEOUT_MS,
-                    ))
-                }
-                // A new alert (not a repeated Trigger) must grab the screen even if the app is in the
-                // background (§7.6). The process is alive (omri delivered the FIG), so bring our Activity
-                // to the front; the overlay is already in the state, so it shows on resume.
-                if (!wasShowing) bringToForegroundForAlert()
-                // Remember it: this presentation may replace one the user had not finished reading.
-                val line = ewsStageName(alert.stage, alert.isTest) +
-                    (label?.let { " · $it" } ?: "") + " · Vorfall ${alert.incidentId}"
-                _state.update { st ->
-                    st.copy(asaHistory = (listOf(currentClock() to line) + st.asaHistory)
-                        .take(ASA_HISTORY_MAX))
-                }
-                com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
-                    "${currentClock()} MATCH → present: ${alert.description}\n", append = true)
-                // A genuinely new alert must restart the timeout even if the previous one was armed
-                // less than a second ago — clear the throttle stamp so armEws… cannot skip this one.
-                ewsLastArmMs = 0L
-                armEwsClearTimeout()
-                // §7.6.2 audio handover — play the alert sub-channel. Only for a tuned-ensemble alert;
-                // an OE alert would need a cross-ensemble retune (kept for a later milestone), so it is
-                // shown but not sounded here.
-                if (!alert.isOtherEnsembleAlert) maybeStartEwsAudio(alert.subChannelId)
-            }
-            org.omri.tuner.DabEwsAlert.FORM_SUSTAIN -> {
-                // Continuation of the active alert — refresh the safety timeout (§7.6.2).
-                if (_state.value.ewsAlert != null &&
-                    (ewsActiveSubCh == -1 || alert.subChannelId == ewsActiveSubCh)) {
-                    if (!reviveEndedAlert(alert)) armEwsClearTimeout()
-                }
-            }
-            org.omri.tuner.DabEwsAlert.FORM_END -> endEwsAlert()   // §7.6.4
-        }
-    }
+    // ---- ASA / EWS alerts (ETSI TS 104 089) — the lifecycle lives in EwsAlertEngine ----
 
     /**
-     * A Trigger or Sustain for the message still standing on screen after its End phase: the
-     * broadcast has resumed.
-     *
-     * This only exists because the message now outlives the End phase. §7.6.2 is explicit — "the
-     * alert shall continue to be played whilst the Trigger or Sustain phase signalling with the same
-     * SubChId is received, unless the alert is terminated by the user" — and the user has NOT
-     * terminated it; the window is still up because we stopped closing it ourselves. Without this,
-     * the repeat fell into the coalescing branch, was swallowed as "already showing", and the audio
-     * stayed on the ordinary station while a warning was being broadcast.
-     *
-     * Returns true when it handled the frame (so the caller does not arm the timeout twice).
+     * The engine sees the radio only through this host: state, tuner lookup, audio route, foreground.
+     * Everything Android-specific (locale strings, Activity start, diagnostics file) stays here.
      */
-    private fun reviveEndedAlert(alert: org.omri.tuner.DabEwsAlert): Boolean {
-        if (_state.value.ewsAlert?.ended != true) return false
-        _state.update { st ->
-            val a = st.ewsAlert ?: return@update st
-            st.copy(ewsAlert = a.copy(ended = false))
+    private val ewsHost = object : EwsAlertEngine.Host {
+        override val settings get() = _state.value.settings
+        override val stations get() = _state.value.stations
+        override val gpsCode get() = gpsLocation.code
+        override val alert get() = _state.value.ewsAlert
+        override fun updateAlert(transform: (com.px6.radio.model.EwsAlertUi?) -> com.px6.radio.model.EwsAlertUi?) {
+            _state.update { st ->
+                val next = transform(st.ewsAlert)
+                if (next === st.ewsAlert) st else st.copy(ewsAlert = next)
+            }
         }
-        runCatching {
-            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
-                "${currentClock()} Warnung wird erneut ausgestrahlt — Ton zurueck auf SubCh=${alert.subChannelId}\n",
-                append = true)
+        override fun addHistory(line: String, max: Int) {
+            _state.update { st -> st.copy(asaHistory = (listOf(currentClock() to line) + st.asaHistory).take(max)) }
         }
-        ewsLastArmMs = 0L          // a resumed alert must not be swallowed by the once-a-second throttle
-        armEwsClearTimeout()
-        if (!alert.isOtherEnsembleAlert) maybeStartEwsAudio(alert.subChannelId)
-        return true
-    }
-
-    /**
-     * The broadcast reached its End phase (§7.6.4).
-     *
-     * The spec ends the ALERT MODE here: "audio playback shall be stopped and the receiver shall
-     * return to the stored prior functional state". That is all it requires — it says nothing about
-     * the message on screen, and the only "shall be displayed" in the whole document concerns the
-     * alert service's label (§7.6.2). Tearing the text away was our own invention, and a bad one:
-     * the window vanished mid-sentence with no warning.
-     *
-     * So the audio goes back immediately, and the text simply stays until the user closes it. No
-     * countdown, because there is no bar to announce one — the rule being: nothing closes by itself
-     * unless a progress bar says it is about to.
-     */
-    private fun endEwsAlert() {
-        val alert = _state.value.ewsAlert ?: return
-        if (alert.ended) return                     // a stray Sustain/End after the first End
-        restoreAfterEws()                           // §7.6.4: audio back to the previous source, now
-        ewsClearJob?.cancel(); ewsClearJob = null
-        _state.update { st ->
-            val a = st.ewsAlert ?: return@update st
-            // timeoutMs = 0 leaves the overlay with no deadline at all, so its bar stays hidden.
-            st.copy(ewsAlert = a.copy(ended = true, timeoutArmedAtMs = 0L, timeoutMs = 0L))
+        override val nowPlayingStationId get() = _state.value.nowPlaying?.station?.id
+        override fun findServiceBySubChannel(subCh: Int): String? = dab?.findServiceBySubChannel(subCh)
+        // "Already playing" has to mean AUDIBLE, not merely tuned: nowPlayingId is only ever written
+        // by tune() and is never cleared when the audio leaves DAB (toAnalog/toIp just mute the DAB
+        // sink and leave the service decoding). Only the router knows what is on the amplifier.
+        override fun isAudiblyPlaying(serviceId: String): Boolean =
+            router?.current == com.px6.radio.audio.AudioSource.DAB && dab?.state?.value?.nowPlayingId == serviceId
+        override fun playAlertService(serviceId: String) {
+            val d = dab ?: return
+            following?.setUserBand(true)   // keep DAB->FM following from pulling away during the alert
+            viewModelScope.launch(Dispatchers.IO) {
+                runCatching { router?.toDab(fade = false) { d.tune(serviceId) } }
+                    .onFailure { android.util.Log.w(TAG, "EWS audio handover failed: ${it.message}") }
+            }
         }
-        runCatching {
-            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
-                "${currentClock()} End-Phase — Ton zurueck, Meldung bleibt bis der Nutzer schliesst\n",
-                append = true)
-        }
-    }
-
-    private fun armEwsClearTimeout() {
-        // Once the End phase has run, the countdown is final — a late Trigger/Sustain must not push
-        // the window back out again.
-        if (_state.value.ewsAlert?.ended == true) return
-        // Throttle: Trigger/Sustain repeat ~10–30×/s, but refreshing a 12 s timeout more than once a
-        // second is pointless churn (cancel + relaunch a coroutine each time).
-        val now = android.os.SystemClock.elapsedRealtime()
-        if (now - ewsLastArmMs < 1_000L && ewsClearJob?.isActive == true) return
-        ewsLastArmMs = now
-        ewsClearJob?.cancel()
-        // Publish the new deadline so the overlay's drain bar restarts with it. At most once a second
-        // (the throttle above), so this costs one state emission per second while an alert is on air.
-        _state.update { st ->
-            val a = st.ewsAlert ?: return@update st
-            st.copy(ewsAlert = a.copy(timeoutArmedAtMs = now, timeoutMs = EWS_ALERT_TIMEOUT_MS))
-        }
-        // No Trigger/Sustain within this window ⇒ the alert has ceased; drop the overlay.
-        ewsClearJob = viewModelScope.launch { delay(EWS_ALERT_TIMEOUT_MS); clearEwsAlert() }
-    }
-
-    /**
-     * Switch audio to the alert sub-channel's DAB service (§7.6.2), once per alert. If the service
-     * isn't in tuning memory we do nothing — normal playback continues under the overlay, so a missing
-     * alert channel never degrades the radio. Remembers the current station to restore afterwards.
-     */
-    private fun maybeStartEwsAudio(subCh: Int) {
-        if (ewsHandoverDone) return
-        val d = dab ?: return
-        val alertId = d.findServiceBySubChannel(subCh) ?: return   // unknown → overlay only
-        ewsHandoverDone = true
-        ewsAlertServiceId = alertId   // its live DLS/SlideShow becomes the alert message in the overlay
-        // Already playing the alert audio? Then the receiver is, by definition, already presenting the
-        // alert (§7.6.2) — e.g. listening to DokDeb, which IS the home-test channel. Do NOT switch, and
-        // crucially do NOT remember a station to "restore" (that would re-tune the same service at the
-        // alert's end for no reason). ewsSavedStationId stays null → restoreAfterEws is a no-op.
-        //
-        // "Already playing" has to mean AUDIBLE, not merely tuned. nowPlayingId is the logical DAB
-        // station and is only ever written by tune() — it is never cleared when the audio leaves DAB,
-        // because toAnalog/toIp just set the DAB gain to 0 and leave the service decoding. Testing it
-        // alone therefore skipped the handover for someone who had listened to the alert's service
-        // earlier and then switched to FM or Internet: the DAB sink stayed muted and the driver heard
-        // their stream through the whole emergency, with only the overlay to show for it. The alert
-        // service is usually the ensemble's main service, so that was the LIKELY case, not a corner
-        // one. Only the router knows what is actually on the amplifier.
-        if (router?.current == com.px6.radio.audio.AudioSource.DAB &&
-            d.state.value.nowPlayingId == alertId
-        ) {
+        override fun playStation(station: Station) = play(station)
+        /**
+         * Bring our Activity to the foreground so a background app still shows the alert (§7.6). Relies
+         * on the "draw over other apps" permission (used for the mini-player) to allow a background
+         * activity start; best-effort — never throws into the alert path.
+         */
+        override fun bringToForeground() {
             runCatching {
-                com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
-                    "${currentClock()} alert audio already playing (subch=$subCh, service=$alertId) — no switch\n", append = true)
+                appContext.startActivity(
+                    android.content.Intent(appContext, com.px6.radio.MainActivity::class.java).addFlags(
+                        android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                            android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
+                            android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    )
+                )
+            }.onFailure { android.util.Log.w(TAG, "EWS foreground bring-up failed: ${it.message}") }
+        }
+        override fun stageName(stage: Int, isTest: Boolean): String {
+            // Resolve in the user-chosen app language (wrap fresh — appContext is not locale-wrapped).
+            val ctx = com.px6.radio.i18n.LocaleHelper.wrap(appContext)
+            val res = when {
+                isTest -> R.string.ews_stage_test
+                stage == org.omri.tuner.DabEwsAlert.STAGE_LEVEL1_CRITICAL -> R.string.ews_stage_critical
+                else -> R.string.ews_stage_warning
             }
-            return
+            return ctx.getString(res)
         }
-        // Switching from another station/band to the alert audio: remember where to return afterwards.
-        ewsSavedStationId = _state.value.nowPlaying?.station?.id ?: ""
-        following?.setUserBand(true)   // keep DAB->FM following from pulling away during the alert
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching { router?.toDab(fade = false) { d.tune(alertId) } }
-                .onFailure { android.util.Log.w(TAG, "EWS audio handover failed: ${it.message}") }
+        override fun log(text: String) {
+            Diag.write(appContext, DiagFile.EWS, "${currentClock()} $text\n", append = true)
         }
-        runCatching {
-            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
-                "${currentClock()} audio handover → alert subch=$subCh service=$alertId\n", append = true)
-        }
+        override fun clockText(): String = currentClock()
     }
 
-    private fun clearEwsAlert(keepDismissal: Boolean = false) {
-        ewsClearJob?.cancel(); ewsClearJob = null
-        ewsActiveSubCh = -2
-        ewsShownKey = -1
-        ewsShownStage = -1
-        ewsAlertServiceId = null
-        // Reaching here for any reason OTHER than the user closing it means the alert is over (End
-        // phase, or no Trigger/Sustain for the whole timeout). Forget the dismissal so the next
-        // alert — or this incident coming back later — is presented normally.
-        if (!keepDismissal) { ewsDismissedKey = -1; ewsDismissedStage = -1 }
-        _state.update { if (it.ewsAlert != null) it.copy(ewsAlert = null) else it }
-        restoreAfterEws()
-    }
+    private val ews = EwsAlertEngine(
+        scope = viewModelScope, host = ewsHost, now = { android.os.SystemClock.elapsedRealtime() },
+    )
 
-    /** Return audio to whatever was playing before the alert (§7.6.4). No-op if we never handed over. */
-    private fun restoreAfterEws() {
-        if (!ewsHandoverDone) return
-        ewsHandoverDone = false
-        val saved = ewsSavedStationId; ewsSavedStationId = null
-        if (saved.isNullOrEmpty()) return
-        val st = _state.value.stations.firstOrNull { it.id == saved } ?: return
-        play(st)   // the normal play path restores the correct band + audio route
-    }
+    private fun onEwsAlert(alert: org.omri.tuner.DabEwsAlert) = ews.onAlert(alert)
 
     /** Dismiss the alert overlay by hand (§7.6.4 user termination). */
-    override fun dismissEwsAlert() {
-        ewsDismissedKey = ewsShownKey
-        ewsDismissedStage = ewsShownStage
-        runCatching {
-            com.px6.radio.diag.Diag.write(appContext, DiagFile.EWS,
-                "${currentClock()} user closed alert (key=$ewsDismissedKey stage=$ewsDismissedStage)\n", append = true)
-        }
-        clearEwsAlert(keepDismissal = true)
-    }
-
-    /**
-     * Bring our Activity to the foreground so a background app still shows the alert (§7.6). Relies on
-     * the "draw over other apps" permission (used for the mini-player) to allow a background activity
-     * start; best-effort — never throws into the alert path.
-     */
-    private fun bringToForegroundForAlert() {
-        runCatching {
-            appContext.startActivity(
-                android.content.Intent(appContext, com.px6.radio.MainActivity::class.java).addFlags(
-                    android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                        android.content.Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
-                        android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP
-                )
-            )
-        }.onFailure { android.util.Log.w(TAG, "EWS foreground bring-up failed: ${it.message}") }
-    }
-
-    private fun ewsStageName(stage: Int, isTest: Boolean): String {
-        // Resolve in the user-chosen app language (wrap fresh — appContext is not locale-wrapped).
-        val ctx = com.px6.radio.i18n.LocaleHelper.wrap(appContext)
-        val res = when {
-            isTest -> R.string.ews_stage_test
-            stage == org.omri.tuner.DabEwsAlert.STAGE_LEVEL1_CRITICAL -> R.string.ews_stage_critical
-            stage >= org.omri.tuner.DabEwsAlert.STAGE_LEVEL2_START -> R.string.ews_stage_warning
-            else -> R.string.ews_stage_warning
-        }
-        return ctx.getString(res)
-    }
+    override fun dismissEwsAlert() = ews.dismiss()
 
     /** Push audio-related settings (loudness normalisation, fades) into the internet player. */
     private fun applyAudioSettings() {
@@ -2888,11 +2617,9 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
 
         /** Drop an active alert overlay if no Trigger/Sustain refreshes it within this window (the
          *  alert message has ended without an explicit End phase). */
-        const val EWS_ALERT_TIMEOUT_MS = 12_000L
 
         /** How many past alerts the ASA info panel lists. Short on purpose — it answers "what did I
          *  miss just now", not "give me a logbook"; the diagnostics file already is the logbook. */
-        const val ASA_HISTORY_MAX = 5
 
         /** How often the idle-tuner monitoring is re-checked (see [ensureEwsMonitoring]). Slow on
          *  purpose: its job is to close a start-up race and to advance a discovery sweep, neither of
