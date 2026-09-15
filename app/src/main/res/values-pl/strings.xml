@@ -283,4 +283,8 @@
     <string name="settings_asa_attention_tone">Sygnał uwagi</string>
     <string name="settings_asa_attention_tone_hint">Krótki ton sygnałowy przed wyświetleniem ostrzeżenia</string>
     <string name="tiles_stream_failed">nieosiągalny</string>
+    <string name="settings_orientation">Orientacja</string>
+    <string name="settings_orientation_hint">Pozioma to bezpieczny wybór dla radia samochodowego. „Automatyczna” obraca się z urządzeniem — dla tabletów i pionowych ekranów</string>
+    <string name="settings_orientation_landscape">Pozioma</string>
+    <string name="settings_orientation_auto">Automatyczna</string>
 </resources>

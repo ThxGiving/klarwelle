@@ -29,7 +29,12 @@ import com.px6.radio.ui.theme.skin
  * once and kept; decoding inside a scrolling list would cost frames.
  */
 @Composable
-fun StationLogo(station: Station, modifier: Modifier) {
+fun StationLogo(
+    station: Station,
+    modifier: Modifier,
+    /** Initials size of the fallback plate — larger where the logo is the artwork, not a tile. */
+    initialsSize: androidx.compose.ui.unit.TextUnit = androidx.compose.ui.unit.TextUnit.Unspecified,
+) {
     val store = LocalLogoStore.current
     val version = LocalLogoVersion.current
     val bmp = remember(station.id, version) { store?.bitmap(station) }
@@ -50,7 +55,8 @@ fun StationLogo(station: Station, modifier: Modifier) {
         ) {
             Text(
                 station.logoInitials, color = appColors.text,
-                fontSize = skin.font(skin.bodySize), fontWeight = FontWeight.Bold,
+                fontSize = if (initialsSize != androidx.compose.ui.unit.TextUnit.Unspecified) initialsSize else skin.font(skin.bodySize),
+                fontWeight = FontWeight.Bold,
             )
         }
     }

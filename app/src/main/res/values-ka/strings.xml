@@ -283,4 +283,8 @@
     <string name="settings_asa_attention_tone">ყურადღების სიგნალი</string>
     <string name="settings_asa_attention_tone_hint">მოკლე სიგნალი გაფრთხილების ჩვენებამდე</string>
     <string name="tiles_stream_failed">მიუწვდომელია</string>
+    <string name="settings_orientation">ორიენტაცია</string>
+    <string name="settings_orientation_hint">ჰორიზონტალური უსაფრთხო არჩევანია ავტომაგნიტოლებისთვის. „ავტომატური“ ტრიალებს მოწყობილობასთან ერთად — პლანშეტებისა და ვერტიკალური ეკრანებისთვის</string>
+    <string name="settings_orientation_landscape">ჰორიზონტალური</string>
+    <string name="settings_orientation_auto">ავტომატური</string>
 </resources>

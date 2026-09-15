@@ -117,6 +117,7 @@ class RadioStore(context: Context) {
             themeMode = runCatching { ThemeMode.valueOf(p[K.THEME_MODE] ?: "") }
                 .getOrDefault(ThemeMode.DARK),
             frontendId = p[K.FRONTEND] ?: "split",
+            autoRotate = p[K.AUTO_ROTATE] ?: false,
             skinDarkId = p[K.SKIN_DARK] ?: "modern-dark",
             skinLightId = p[K.SKIN_LIGHT] ?: "modern-light",
             accentId = p[K.ACCENT] ?: "red",
@@ -222,6 +223,7 @@ class RadioStore(context: Context) {
             e[K.FM_REGION] = settings.fmRegion
             e[K.THEME_MODE] = settings.themeMode.name
             e[K.FRONTEND] = settings.frontendId
+            e[K.AUTO_ROTATE] = settings.autoRotate
             e[K.SKIN_DARK] = settings.skinDarkId
             e[K.SKIN_LIGHT] = settings.skinLightId
             e[K.ACCENT] = settings.accentId
@@ -277,6 +279,7 @@ class RadioStore(context: Context) {
         val FM_REGION = stringPreferencesKey("fm_region")
         val THEME_MODE = stringPreferencesKey("theme_mode")
         val FRONTEND = stringPreferencesKey("frontend_id")
+        val AUTO_ROTATE = booleanPreferencesKey("auto_rotate")
         val SKIN_DARK = stringPreferencesKey("skin_dark_id")
         val SKIN_LIGHT = stringPreferencesKey("skin_light_id")
         val ACCENT = stringPreferencesKey("accent_id")

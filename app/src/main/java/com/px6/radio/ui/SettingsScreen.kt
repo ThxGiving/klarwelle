@@ -1065,6 +1065,14 @@ private fun AppearancePage(
     headlightOn: Boolean?,
     onChange: ((Settings) -> Settings) -> Unit,
 ) {
+    OptionRow(
+        label = stringResource(R.string.settings_orientation),
+        hint = stringResource(R.string.settings_orientation_hint),
+        value = stringResource(if (settings.autoRotate) R.string.settings_orientation_auto else R.string.settings_orientation_landscape),
+        options = listOf(stringResource(R.string.settings_orientation_landscape), stringResource(R.string.settings_orientation_auto)),
+        selectedIndex = if (settings.autoRotate) 1 else 0,
+        onSelect = { i -> onChange { it.copy(autoRotate = i == 1) } },
+    )
     CheckRow(
         stringResource(R.string.settings_show_signal),
         stringResource(R.string.settings_show_signal_hint),

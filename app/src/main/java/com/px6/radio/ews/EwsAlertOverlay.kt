@@ -58,7 +58,9 @@ fun EwsAlertOverlay(alert: EwsAlertUi, onDismiss: () -> Unit) {
     // A warning has to be readable from the driver's seat whatever the screen: the text grows with
     // the panel width (reference: the 853 dp head unit), so a wide 12" display does not show a huge
     // orange box with small type in the middle.
-    val widthDp = LocalConfiguration.current.screenWidthDp
+    val cfg = LocalConfiguration.current
+    val widthDp = cfg.screenWidthDp
+    val portrait = cfg.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
     val f = (widthDp / 853f).coerceIn(1f, 1.8f)
     fun fs(v: Int) = (v * f).sp
     Box(
@@ -67,7 +69,8 @@ fun EwsAlertOverlay(alert: EwsAlertUi, onDismiss: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Column(
-            Modifier.fillMaxWidth(0.9f).fillMaxHeight(0.9f)
+            // Upright there is far more height than the text needs; 60 % keeps the panel a panel.
+            Modifier.fillMaxWidth(0.9f).fillMaxHeight(if (portrait) 0.6f else 0.9f)
                 .clip(RoundedCornerShape(28.dp)).background(bg)
                 .padding(horizontal = 32.dp, vertical = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

@@ -283,4 +283,8 @@
     <string name="settings_asa_attention_tone">Señal de atención</string>
     <string name="settings_asa_attention_tone_hint">Breve tono antes de mostrar un aviso</string>
     <string name="tiles_stream_failed">no disponible</string>
+    <string name="settings_orientation">Orientación</string>
+    <string name="settings_orientation_hint">Horizontal es la opción segura para radios de coche. «Automática» gira con el dispositivo: para tabletas y pantallas verticales</string>
+    <string name="settings_orientation_landscape">Horizontal</string>
+    <string name="settings_orientation_auto">Automática</string>
 </resources>

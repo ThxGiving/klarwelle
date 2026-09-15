@@ -137,6 +137,8 @@ data class Settings(
     val themeMode: ThemeMode = ThemeMode.DARK,
     /** Which interface arrangement to render (see `Frontends`). */
     val frontendId: String = "tiles",
+    /** Follow the device sensor (tablets, Tesla-style units) instead of forcing landscape. */
+    val autoRotate: Boolean = false,
     /**
      * Skins used for the dark and the light appearance. Keeping both means the automatic
      * switching by time or headlights keeps working even with custom skins.

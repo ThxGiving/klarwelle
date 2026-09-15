@@ -13,6 +13,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -294,48 +295,72 @@ object SplitFrontend : RadioFrontend {
                     onDismiss = actions::dismissErrors,
                 )
             }
-            Row(Modifier.fillMaxWidth().weight(1f)) {
-                Column(
-                    Modifier.width(392.dp).fillMaxHeight().background(appColors.panelAlt),
-                ) {
-                    SourceTabs(
-                        selected = state.selectedBand,
-                        bands = state.availableBands,
-                        onSelect = actions::selectBand,
-                    )
-                    if (state.visibleStations.isEmpty()) {
-                        EmptyHint(noStationsAtAll = state.stations.isEmpty())
-                    } else {
-                        val listState = rememberLazyListState()
-                        // Open already scrolled to the playing station (e.g. the current stream).
-                        val playingId = state.nowPlaying?.station?.id
-                        LaunchedEffect(playingId, state.visibleStations) {
-                            val idx = state.visibleStations.indexOfFirst { it.id == playingId }
-                            if (idx >= 0) listState.scrollToItem(idx)
+            // Landscape: list left, now-playing right. Portrait (a tablet held upright): the same
+            // two blocks stacked — list on top, now-playing and presets below — crossfaded on rotation.
+            val portrait = androidx.compose.ui.platform.LocalConfiguration.current.orientation ==
+                android.content.res.Configuration.ORIENTATION_PORTRAIT
+            androidx.compose.animation.AnimatedContent(
+                targetState = portrait,
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                transitionSpec = {
+                    androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(250)) togetherWith
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(200))
+                },
+                label = "orientation",
+            ) { isPortrait ->
+                if (isPortrait) {
+                    Column(Modifier.fillMaxSize()) {
+                        StationListColumn(state, actions, Modifier.fillMaxWidth().weight(1f))
+                        Box(Modifier.fillMaxWidth().fillMaxHeight(0.42f)) {
+                            state.nowPlaying?.let { NowPlayingPane(it, tuning = it.station.id == state.tuningStationId) }
                         }
-                        LazyColumn(
-                            Modifier.fillMaxWidth().weight(1f).padding(horizontal = 8.dp),
-                            state = listState,
-                        ) {
-                            items(state.visibleStations, key = { it.id }) { st ->
-                                StationRow(
-                                    station = st,
-                                    selected = st.id == state.nowPlaying?.station?.id,
-                                    tuning = st.id == state.tuningStationId,
-                                    onClick = { actions.selectStation(st) },
-                                )
+                        TransportBar(state = state, onTunePreset = actions::tunePreset, onAssignPreset = actions::assignPreset)
+                    }
+                } else {
+                    Row(Modifier.fillMaxSize()) {
+                        StationListColumn(state, actions, Modifier.width(392.dp).fillMaxHeight())
+                        Column(Modifier.fillMaxHeight().weight(1f)) {
+                            Box(Modifier.fillMaxWidth().weight(1f)) {
+                                state.nowPlaying?.let { NowPlayingPane(it, tuning = it.station.id == state.tuningStationId) }
                             }
+                            TransportBar(state = state, onTunePreset = actions::tunePreset, onAssignPreset = actions::assignPreset)
                         }
                     }
                 }
-                Column(Modifier.fillMaxHeight().weight(1f)) {
-                    Box(Modifier.fillMaxWidth().weight(1f)) {
-                        state.nowPlaying?.let { NowPlayingPane(it, tuning = it.station.id == state.tuningStationId) }
-                    }
-                    TransportBar(
-                        state = state,
-                        onTunePreset = actions::tunePreset,
-                        onAssignPreset = actions::assignPreset,
+            }
+        }
+    }
+}
+
+/** Band tabs plus the scrolling station list — the left column of the split view. */
+@Composable
+private fun StationListColumn(state: RadioUiState, actions: RadioActions, modifier: Modifier) {
+    Column(modifier.background(appColors.panelAlt)) {
+        SourceTabs(
+            selected = state.selectedBand,
+            bands = state.availableBands,
+            onSelect = actions::selectBand,
+        )
+        if (state.visibleStations.isEmpty()) {
+            EmptyHint(noStationsAtAll = state.stations.isEmpty())
+        } else {
+            val listState = rememberLazyListState()
+            // Open already scrolled to the playing station (e.g. the current stream).
+            val playingId = state.nowPlaying?.station?.id
+            LaunchedEffect(playingId, state.visibleStations) {
+                val idx = state.visibleStations.indexOfFirst { it.id == playingId }
+                if (idx >= 0) listState.scrollToItem(idx)
+            }
+            LazyColumn(
+                Modifier.fillMaxWidth().weight(1f).padding(horizontal = 8.dp),
+                state = listState,
+            ) {
+                items(state.visibleStations, key = { it.id }) { st ->
+                    StationRow(
+                        station = st,
+                        selected = st.id == state.nowPlaying?.station?.id,
+                        tuning = st.id == state.tuningStationId,
+                        onClick = { actions.selectStation(st) },
                     )
                 }
             }

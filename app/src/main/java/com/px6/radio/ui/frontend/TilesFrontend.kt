@@ -36,6 +36,12 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.animation.Crossfade
+import com.px6.radio.ui.StationLogo
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -541,6 +547,30 @@ object TilesFrontend : RadioFrontend {
         pendingStore: Station?,
         onStored: () -> Unit,
     ) {
+        // Portrait (a tablet held upright, a Tesla-style unit): the same pieces stacked — now-playing
+        // with artwork on top, arrows beneath the name, presets as a 3×2 grid. Landscape is the
+        // classic head-unit row. The switch crossfades so a rotation re-flows instead of jumping.
+        val portrait = LocalConfiguration.current.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT
+        AnimatedContent(
+            targetState = portrait,
+            transitionSpec = { fadeIn(tween(250)) togetherWith fadeOut(tween(200)) },
+            label = "orientation",
+        ) { isPortrait ->
+            if (isPortrait) PortraitPresetPage(state, actions, pager, onGroup, pendingStore, onStored)
+            else LandscapePresetPage(state, actions, pager, onGroup, pendingStore, onStored)
+        }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    private fun LandscapePresetPage(
+        state: RadioUiState,
+        actions: RadioActions,
+        pager: PagerState,
+        onGroup: (Int) -> Unit,
+        pendingStore: Station?,
+        onStored: () -> Unit,
+    ) {
         Column(Modifier.fillMaxSize()) {
             Row(
                 Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(8)),
@@ -551,92 +581,7 @@ object TilesFrontend : RadioFrontend {
                     Modifier.weight(1f).padding(horizontal = skin.pad(8)),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
-                    val np = state.nowPlaying
-                    val st = np?.station
-                    val fixed = st != null && state.fixedNames.containsKey(st.id)
-                    // Tap the name to open a floating framed slideshow window — same for DAB and IP,
-                    // but only while there actually is a slideshow to show. Reset on station change.
-                    var slideOpen by remember(st?.id) { mutableStateOf(false) }
-                    val hasSlide = np?.slideshowImage != null
-                    if (slideOpen && hasSlide) SlideshowWindow(state) { slideOpen = false }
-                    // A frozen name is marked with a dot on either side and stops scrolling.
-                    val shown = st?.let { state.displayName(it) } ?: "—"
-                    // Crossfade the station name on change (station switch, "(FM)" suffix, freeze).
-                    val nameText = (if (fixed) "· $shown ·" else shown)
-                        .let { if (skin.titleUppercase) it.uppercase() else it }
-                    Crossfade(targetState = nameText, animationSpec = tween(280), label = "npName") { value ->
-                        Text(
-                            value,
-                            color = appColors.text,
-                            fontSize = skin.font(skin.titleSize),
-                            fontWeight = skin.titleWeight,
-                            letterSpacing = skin.titleTracking.em,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1, softWrap = false,
-                            modifier = Modifier.fillMaxWidth()
-                                .then(
-                                    if (st != null) {
-                                        Modifier.combinedClickable(
-                                            onClick = { if (hasSlide) slideOpen = true },
-                                            onLongClick = { actions.toggleFixedName(st) },
-                                        )
-                                    } else Modifier
-                                )
-                                .then(
-                                    if (fixed) Modifier
-                                    else Modifier.basicMarquee(iterations = Int.MAX_VALUE)
-                                ),
-                        )
-                    }
-                    val line = np?.let {
-                        if (it.dlArtist != null && it.dlTitle != null) "${it.dlArtist} — ${it.dlTitle}"
-                        else it.dlsText
-                    }
-                    // Crossfade the metadata/DLS line when the track title changes.
-                    Crossfade(targetState = line, animationSpec = tween(280), label = "npLine") { value ->
-                        if (!value.isNullOrBlank()) {
-                            Column(
-                                Modifier.fillMaxWidth(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                Spacer(Modifier.height(skin.pad(6)))
-                                Text(
-                                    value, color = appColors.muted,
-                                    fontSize = skin.font(skin.bodySize),
-                                    textAlign = TextAlign.Center, maxLines = 1, softWrap = false,
-                                    modifier = Modifier.fillMaxWidth()
-                                        .basicMarquee(iterations = Int.MAX_VALUE),
-                                )
-                            }
-                        }
-                    }
-                    // Extra channels carried by this service ("Zusatzsender"). Shown, not yet
-                    // selectable — this omri build plays only a service's primary component.
-                    val extras = st?.secondaryLabels.orEmpty()
-                    if (extras.isNotEmpty()) {
-                        Spacer(Modifier.height(skin.pad(8)))
-                        Text(
-                            stringResource(R.string.tiles_extra, extras.joinToString(" · ")),
-                            color = appColors.muted2, fontSize = skin.font(skin.labelSize),
-                            textAlign = TextAlign.Center, maxLines = 1,
-                            softWrap = false, overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    if (state.mutedNoReception) {
-                        Spacer(Modifier.height(skin.pad(10)))
-                        Text(
-                            stringResource(R.string.tiles_muted_no_dab_fm),
-                            color = appColors.fm, fontSize = skin.font(skin.labelSize),
-                        )
-                    }
-                    if (pendingStore != null) {
-                        Spacer(Modifier.height(skin.pad(10)))
-                        Text(
-                            stringResource(R.string.tiles_store_target_hint, pendingStore.name),
-                            color = appColors.accent, fontSize = skin.font(skin.labelSize),
-                        )
-                    }
+                    NowPlayingBlock(state, actions, pendingStore)
                 }
                 StepArrow("›", actions::next)
             }
@@ -660,6 +605,150 @@ object TilesFrontend : RadioFrontend {
             }
             Spacer(Modifier.height(skin.pad(8)))
         }
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    private fun PortraitPresetPage(
+        state: RadioUiState,
+        actions: RadioActions,
+        pager: PagerState,
+        onGroup: (Int) -> Unit,
+        pendingStore: Station?,
+        onStored: () -> Unit,
+    ) {
+        Column(Modifier.fillMaxSize()) {
+            Column(
+                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(24)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                // Upright there is room for the picture: the slideshow while one is running,
+                // otherwise the station logo — the landscape page has neither above the name.
+                val st = state.nowPlaying?.station
+                if (state.viewMode != ViewMode.RADIO_TEXT && st != null) {
+                    val art = Modifier.fillMaxWidth(0.4f).aspectRatio(1f)
+                    if (state.nowPlaying?.slideshowImage != null) Slideshow(state, art)
+                    else StationLogo(st, art.clip(RoundedCornerShape(skin.pad(28))).background(appColors.panel), initialsSize = skin.font(64.sp))
+                    Spacer(Modifier.height(skin.pad(24)))
+                }
+                NowPlayingBlock(state, actions, pendingStore)
+                Spacer(Modifier.height(skin.pad(24)))
+                Row(horizontalArrangement = Arrangement.spacedBy(skin.pad(24))) {
+                    StepArrow("‹", actions::prev)
+                    StepArrow("›", actions::next)
+                }
+            }
+            when (state.viewMode) {
+                ViewMode.PRESETS, ViewMode.SLIDESHOW -> {
+                    HorizontalPager(
+                        state = pager, pageSpacing = skin.pad(8),
+                        modifier = Modifier.systemGestureExclusion(),
+                    ) { pageIndex ->
+                        PresetGrid(state, actions, pageIndex, pendingStore, onStored)
+                    }
+                    GroupIndicator(pager.currentPage, onGroup)
+                }
+                ViewMode.STATION_INFO, ViewMode.RADIO_TEXT -> StationInfo(state, showImage = false)
+            }
+            Spacer(Modifier.height(skin.pad(8)))
+        }
+    }
+
+    /** Station name, DLS line, extras and hints — the centre of the now-playing area. */
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    private fun androidx.compose.foundation.layout.ColumnScope.NowPlayingBlock(
+        state: RadioUiState,
+        actions: RadioActions,
+        pendingStore: Station?,
+    ) {
+            val np = state.nowPlaying
+            val st = np?.station
+            val fixed = st != null && state.fixedNames.containsKey(st.id)
+            // Tap the name to open a floating framed slideshow window — same for DAB and IP,
+            // but only while there actually is a slideshow to show. Reset on station change.
+            var slideOpen by remember(st?.id) { mutableStateOf(false) }
+            val hasSlide = np?.slideshowImage != null
+            if (slideOpen && hasSlide) SlideshowWindow(state) { slideOpen = false }
+            // A frozen name is marked with a dot on either side and stops scrolling.
+            val shown = st?.let { state.displayName(it) } ?: "—"
+            // Crossfade the station name on change (station switch, "(FM)" suffix, freeze).
+            val nameText = (if (fixed) "· $shown ·" else shown)
+                .let { if (skin.titleUppercase) it.uppercase() else it }
+            Crossfade(targetState = nameText, animationSpec = tween(280), label = "npName") { value ->
+                Text(
+                    value,
+                    color = appColors.text,
+                    fontSize = skin.font(skin.titleSize),
+                    fontWeight = skin.titleWeight,
+                    letterSpacing = skin.titleTracking.em,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1, softWrap = false,
+                    modifier = Modifier.fillMaxWidth()
+                        .then(
+                            if (st != null) {
+                                Modifier.combinedClickable(
+                                    onClick = { if (hasSlide) slideOpen = true },
+                                    onLongClick = { actions.toggleFixedName(st) },
+                                )
+                            } else Modifier
+                        )
+                        .then(
+                            if (fixed) Modifier
+                            else Modifier.basicMarquee(iterations = Int.MAX_VALUE)
+                        ),
+                )
+            }
+            val line = np?.let {
+                if (it.dlArtist != null && it.dlTitle != null) "${it.dlArtist} — ${it.dlTitle}"
+                else it.dlsText
+            }
+            // Crossfade the metadata/DLS line when the track title changes.
+            Crossfade(targetState = line, animationSpec = tween(280), label = "npLine") { value ->
+                if (!value.isNullOrBlank()) {
+                    Column(
+                        Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Spacer(Modifier.height(skin.pad(6)))
+                        Text(
+                            value, color = appColors.muted,
+                            fontSize = skin.font(skin.bodySize),
+                            textAlign = TextAlign.Center, maxLines = 1, softWrap = false,
+                            modifier = Modifier.fillMaxWidth()
+                                .basicMarquee(iterations = Int.MAX_VALUE),
+                        )
+                    }
+                }
+            }
+            // Extra channels carried by this service ("Zusatzsender"). Shown, not yet
+            // selectable — this omri build plays only a service's primary component.
+            val extras = st?.secondaryLabels.orEmpty()
+            if (extras.isNotEmpty()) {
+                Spacer(Modifier.height(skin.pad(8)))
+                Text(
+                    stringResource(R.string.tiles_extra, extras.joinToString(" · ")),
+                    color = appColors.muted2, fontSize = skin.font(skin.labelSize),
+                    textAlign = TextAlign.Center, maxLines = 1,
+                    softWrap = false, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (state.mutedNoReception) {
+                Spacer(Modifier.height(skin.pad(10)))
+                Text(
+                    stringResource(R.string.tiles_muted_no_dab_fm),
+                    color = appColors.fm, fontSize = skin.font(skin.labelSize),
+                )
+            }
+            if (pendingStore != null) {
+                Spacer(Modifier.height(skin.pad(10)))
+                Text(
+                    stringResource(R.string.tiles_store_target_hint, pendingStore.name),
+                    color = appColors.accent, fontSize = skin.font(skin.labelSize),
+                )
+            }
     }
 
     /** Radio text, optionally alongside the slideshow — the original's "Senderinfo". */
@@ -830,6 +919,51 @@ object TilesFrontend : RadioFrontend {
                     onLongPress = { actions.assignPreset(index) },
                 )
             }
+        }
+    }
+
+    /** The six buttons of a group as two rows of three — the portrait arrangement. */
+    @Composable
+    private fun PresetGrid(
+        state: RadioUiState,
+        actions: RadioActions,
+        group: Int,
+        pendingStore: Station?,
+        onStored: () -> Unit,
+    ) {
+        val first = group * PER_GROUP + 1
+        // Capped in width so the tiles stay finger-sized rather than filling a tablet's height.
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.widthIn(max = 520.dp).padding(horizontal = skin.pad(8)),
+            verticalArrangement = Arrangement.spacedBy(skin.pad(8)),
+        ) {
+            for (row in 0 until 2) Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(skin.pad(8)),
+            ) {
+                for (col in 0 until 3) {
+                    val index = first + row * 3 + col
+                    val st = state.presets.firstOrNull { it.index == index }?.stationId?.let { state.station(it) }
+                    PresetTile(
+                        index = index,
+                        station = st,
+                        name = st?.let { state.displayName(it) },
+                        active = st != null && st.id == state.nowPlaying?.station?.id,
+                        tuning = st != null && st.id == state.tuningStationId,
+                        modifier = Modifier.weight(1f),
+                        onTap = {
+                            if (pendingStore != null) {
+                                actions.selectStation(pendingStore)
+                                actions.assignPreset(index)
+                                onStored()
+                            } else actions.tunePreset(index)
+                        },
+                        onLongPress = { actions.assignPreset(index) },
+                    )
+                }
+            }
+        }
         }
     }
 

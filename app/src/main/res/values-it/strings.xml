@@ -283,4 +283,8 @@
     <string name="settings_asa_attention_tone">Segnale di attenzione</string>
     <string name="settings_asa_attention_tone_hint">Breve tono prima che venga mostrato un avviso</string>
     <string name="tiles_stream_failed">non raggiungibile</string>
+    <string name="settings_orientation">Orientamento</string>
+    <string name="settings_orientation_hint">Orizzontale è la scelta sicura per le autoradio. «Automatico» ruota con il dispositivo: per tablet e display verticali</string>
+    <string name="settings_orientation_landscape">Orizzontale</string>
+    <string name="settings_orientation_auto">Automatico</string>
 </resources>

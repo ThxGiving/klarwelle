@@ -145,6 +145,15 @@ class MainActivity : ComponentActivity() {
                 // Re-evaluate: the GPS follower starts the moment the grant lands, not at next launch.
                 if (result.values.any { it }) vm.updateSettings { it }
             }
+            // Orientation follows the setting, not the manifest: landscape is the safe default for
+            // head units; "automatic" lets a tablet or an upright unit turn. The Activity survives the
+            // turn (configChanges), so audio and every open panel carry on.
+            androidx.compose.runtime.LaunchedEffect(state.settingsLoaded, state.settings.autoRotate) {
+                if (!state.settingsLoaded) return@LaunchedEffect
+                requestedOrientation = if (state.settings.autoRotate)
+                    android.content.pm.ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR
+                else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            }
             androidx.compose.runtime.LaunchedEffect(state.settingsLoaded) {
                 if (!state.settingsLoaded) return@LaunchedEffect
                 val s = state.settings

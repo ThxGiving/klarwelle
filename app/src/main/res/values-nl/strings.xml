@@ -284,4 +284,8 @@
     <string name="settings_asa_attention_tone">Attentiesignaal</string>
     <string name="settings_asa_attention_tone_hint">Korte signaaltoon voordat een waarschuwing wordt getoond</string>
     <string name="tiles_stream_failed">onbereikbaar</string>
+    <string name="settings_orientation">Oriëntatie</string>
+    <string name="settings_orientation_hint">Liggend is de veilige keuze voor autoradio’s. „Automatisch” draait mee met het apparaat — voor tablets en staande schermen</string>
+    <string name="settings_orientation_landscape">Liggend</string>
+    <string name="settings_orientation_auto">Automatisch</string>
 </resources>

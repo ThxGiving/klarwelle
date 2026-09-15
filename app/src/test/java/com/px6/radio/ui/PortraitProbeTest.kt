@@ -10,7 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Probe only: what the two frontends do on a portrait tablet (800×1280 dp). */
+/** The two frontends on a portrait tablet (800×1280 dp) — Tiles has a real portrait arrangement. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w800dp-h1280dp-port-mdpi")

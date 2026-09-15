@@ -286,4 +286,8 @@
     <string name="settings_asa_attention_tone">Aufmerksamkeitssignal</string>
     <string name="settings_asa_attention_tone_hint">Kurzer Signalton, bevor eine Warnmeldung gezeigt wird</string>
     <string name="tiles_stream_failed">nicht erreichbar</string>
+    <string name="settings_orientation">Ausrichtung</string>
+    <string name="settings_orientation_hint">Querformat ist die sichere Wahl für Autoradios. „Automatisch“ dreht mit dem Gerät — für Tablets und hochkant eingebaute Displays</string>
+    <string name="settings_orientation_landscape">Querformat</string>
+    <string name="settings_orientation_auto">Automatisch</string>
 </resources>

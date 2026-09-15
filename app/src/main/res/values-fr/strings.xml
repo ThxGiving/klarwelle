@@ -283,4 +283,8 @@
     <string name="settings_asa_attention_tone">Signal d’attention</string>
     <string name="settings_asa_attention_tone_hint">Brève tonalité avant l’affichage d’une alerte</string>
     <string name="tiles_stream_failed">injoignable</string>
+    <string name="settings_orientation">Orientation</string>
+    <string name="settings_orientation_hint">Le paysage est le choix sûr pour les autoradios. « Automatique » suit l’appareil — pour tablettes et écrans verticaux</string>
+    <string name="settings_orientation_landscape">Paysage</string>
+    <string name="settings_orientation_auto">Automatique</string>
 </resources>

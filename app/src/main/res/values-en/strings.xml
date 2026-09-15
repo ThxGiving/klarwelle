@@ -283,4 +283,8 @@
     <string name="settings_asa_attention_tone">Attention signal</string>
     <string name="settings_asa_attention_tone_hint">Short signal tone before a warning is presented</string>
     <string name="tiles_stream_failed">unreachable</string>
+    <string name="settings_orientation">Orientation</string>
+    <string name="settings_orientation_hint">Landscape is the safe choice for head units. “Automatic” turns with the device — for tablets and upright displays</string>
+    <string name="settings_orientation_landscape">Landscape</string>
+    <string name="settings_orientation_auto">Automatic</string>
 </resources>
