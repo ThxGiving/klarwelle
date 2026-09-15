@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.px6.radio.model.EwsAlertUi
@@ -54,6 +55,12 @@ fun EwsAlertOverlay(alert: EwsAlertUi, onDismiss: () -> Unit) {
     val panel = if (alert.isTest) Color(0xFFB23F00) else Color(0xFF7F0016)   // the dismiss button
     // Absorb all touches (no ripple, no click-through) — nothing behind the alert is operable.
     val noRipple = remember { MutableInteractionSource() }
+    // A warning has to be readable from the driver's seat whatever the screen: the text grows with
+    // the panel width (reference: the 853 dp head unit), so a wide 12" display does not show a huge
+    // orange box with small type in the middle.
+    val widthDp = LocalConfiguration.current.screenWidthDp
+    val f = (widthDp / 853f).coerceIn(1f, 1.8f)
+    fun fs(v: Int) = (v * f).sp
     Box(
         Modifier.fillMaxSize().background(Color(0xCC0B0E12))   // dark scrim around the ~90 % panel
             .clickable(interactionSource = noRipple, indication = null) {},
@@ -79,21 +86,21 @@ fun EwsAlertOverlay(alert: EwsAlertUi, onDismiss: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("⚠", color = Color.White, fontSize = 44.sp)
+            Text("⚠", color = Color.White, fontSize = fs(44))
             Text(
                 if (alert.isTest) stringResource(com.px6.radio.R.string.ews_test_title)
                 else stringResource(com.px6.radio.R.string.ews_alert_title),
-                color = Color.White, fontSize = 30.sp, fontWeight = FontWeight.Black,
+                color = Color.White, fontSize = fs(30), fontWeight = FontWeight.Black,
                 textAlign = TextAlign.Center,
             )
             Text(
                 alert.stageName +
                     if (alert.otherEnsemble) " · " + stringResource(com.px6.radio.R.string.ews_other_ensemble) else "",
-                color = Color(0xFFFFE0E0), fontSize = 20.sp, textAlign = TextAlign.Center,
+                color = Color(0xFFFFE0E0), fontSize = fs(20), textAlign = TextAlign.Center,
             )
             // §7.6.2: the alert service label, when known.
             alert.serviceLabel?.takeIf { it.isNotBlank() }?.let { label ->
-                Text(label, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.SemiBold,
+                Text(label, color = Color.White, fontSize = fs(22), fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center)
             }
             // SlideShow image from the alert sub-channel (MOT), if the broadcast carries one.
@@ -122,7 +129,7 @@ fun EwsAlertOverlay(alert: EwsAlertUi, onDismiss: () -> Unit) {
             // When a real message is shown, keep the generic call-to-action as a secondary line.
             if (message != null && !alert.isTest) {
                 Text(stringResource(com.px6.radio.R.string.ews_follow_authorities),
-                    color = Color(0xFFFFE0E0), fontSize = 15.sp, textAlign = TextAlign.Center)
+                    color = Color(0xFFFFE0E0), fontSize = fs(15), textAlign = TextAlign.Center)
             }
             // The decoder's raw one-liner ("FIG0/15 EWS TRIGGER SubChId=13 stage=L1-Start …") is
             // diagnostics, not a message. It stays in klarwelle-ews.txt and the ASA info panel; on
@@ -130,7 +137,7 @@ fun EwsAlertOverlay(alert: EwsAlertUi, onDismiss: () -> Unit) {
             if (com.px6.radio.BuildConfig.DEBUG) {
                 Text(
                     alert.description,
-                    color = Color(0xFFFFCDCD), fontSize = 12.sp, textAlign = TextAlign.Center,
+                    color = Color(0xFFFFCDCD), fontSize = fs(12), textAlign = TextAlign.Center,
                 )
             }
         }
@@ -146,7 +153,7 @@ fun EwsAlertOverlay(alert: EwsAlertUi, onDismiss: () -> Unit) {
                     .padding(horizontal = 40.dp, vertical = 14.dp),
             ) {
                 Text(stringResource(com.px6.radio.R.string.action_close),
-                    color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    color = Color.White, fontSize = fs(20), fontWeight = FontWeight.Bold)
             }
         }
     }

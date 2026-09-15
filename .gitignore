@@ -26,3 +26,6 @@ docs/*
 !docs/datenschutz.md
 !docs/privacy.md
 mockups/
+design-qa/*/
+design-qa/*.png
+design-qa/run.log

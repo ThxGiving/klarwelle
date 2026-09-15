@@ -46,6 +46,7 @@ import com.px6.radio.ui.theme.AccentColor
 import com.px6.radio.ui.theme.ModernDarkSkin
 import com.px6.radio.ui.theme.ModernLightSkin
 import com.px6.radio.ui.theme.Px6RadioTheme
+import com.px6.radio.ui.theme.ScreenScale
 import com.px6.radio.ui.theme.withAccent
 import com.px6.radio.vm.RadioViewModel
 
@@ -160,7 +161,7 @@ class MainActivity : ComponentActivity() {
             val base = skins.firstOrNull { it.id == wanted }
                 ?: if (state.darkActive) ModernDarkSkin else ModernLightSkin
             val active = base.withAccent(AccentColor.byId(state.settings.accentId))
-            Px6RadioTheme(active) {
+            ScreenScale { Px6RadioTheme(active) {
                 // Non-blocking start: the themed background is up immediately (responsive), and the
                 // radio itself slides in from the side once the persisted settings are in. Gating the
                 // slide on settingsLoaded means the first *visible* frame already uses the saved skin,
@@ -186,7 +187,7 @@ class MainActivity : ComponentActivity() {
                         RadioScreen(vm)
                     }
                 }
-            }
+            } }
         }
     }
 
