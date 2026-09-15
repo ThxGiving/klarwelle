@@ -34,7 +34,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [34], qualifiers = "w1280dp-h720dp-land-mdpi")
 class ScreenshotTest {
 
-    private val noop = object : RadioActions {
+    internal val noop = object : RadioActions {
         override fun selectBand(band: Band) {}
         override fun selectStation(station: Station) {}
         override fun next() {}
@@ -69,7 +69,7 @@ class ScreenshotTest {
         Station(id, name, Band.DAB, "Ensemble $ens", name.take(2).uppercase(), 0, 0,
             ensemble = ens, bitrateKbps = 96, linkedFmFrequencyKhz = linkedFm)
 
-    private val stations = listOf(
+    internal val stations = listOf(
         dab("10bc.d210", "Dlf", "Bundesmux", linkedFm = 98_800),
         dab("10bc.d220", "Dlf Kultur", "Bundesmux"),
         dab("d3d1.d385", "N-JOY", "NDR"),
@@ -78,7 +78,7 @@ class ScreenshotTest {
         dab("10bc.15dd", "RADIO BOB!", "Bundesmux"),
     )
 
-    private fun base(following: FollowingState) = RadioUiState(
+    internal fun base(following: FollowingState) = RadioUiState(
         selectedBand = Band.DAB,
         stations = stations,
         nowPlaying = NowPlaying(stations[0], bandLine = "DAB+ · Ensemble Bundesmux · 96 kbit/s AAC+",
