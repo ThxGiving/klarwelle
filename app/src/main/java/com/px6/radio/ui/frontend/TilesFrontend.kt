@@ -36,6 +36,9 @@ import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.animation.Crossfade
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.ui.platform.LocalDensity
@@ -120,6 +123,9 @@ object TilesFrontend : RadioFrontend {
 
     private const val GROUPS = 3
     private const val PER_GROUP = 6
+
+    /** Width of the portrait artwork frame as a fraction of the pager width. */
+    private const val ART_WIDTH = 0.55f
 
     /** Tick marks on the frequency scale. */
     private const val TICKS = 41
@@ -540,51 +546,73 @@ object TilesFrontend : RadioFrontend {
     }
 
 
-    /** Direction of the last station step (+1 next, -1 previous) — drives the slide animation. */
-    private var stepDir by mutableIntStateOf(1)
-
-    private fun stepNext(actions: RadioActions) { stepDir = 1; actions.next() }
-    private fun stepPrev(actions: RadioActions) { stepDir = -1; actions.prev() }
-
     /**
-     * The now-playing content slides out in the direction of travel and the next station slides in
-     * from the other side — the swipe (or arrow) reads as a page turn, not a redraw.
+     * The now-playing area as a pager over the stations the arrows walk: the content follows the
+     * finger, settling on a neighbour tunes it, and the arrows page the same way. Only the content
+     * moves — the arrows and the presets stay put. Falls back to a single page when the playing
+     * station is not in the list (a stream from a search, an empty band).
      */
+    @OptIn(ExperimentalFoundationApi::class)
+    private class StationPaging(val list: List<Station>, val pager: PagerState, val currentIndex: Int)
+
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
-    private fun SlidingStation(stationId: String?, content: @Composable () -> Unit) {
-        val dir = stepDir
-        AnimatedContent(
-            targetState = stationId,
-            transitionSpec = {
-                (slideInHorizontally(tween(260)) { w -> dir * w } + fadeIn(tween(200))) togetherWith
-                    (slideOutHorizontally(tween(220)) { w -> -dir * w } + fadeOut(tween(160)))
-            },
-            label = "station",
-        ) { _ -> content() }
+    private fun rememberStationPaging(state: RadioUiState, actions: RadioActions): StationPaging {
+        val list = state.steppableStations.ifEmpty { state.visibleStations }
+        val curId = state.nowPlaying?.station?.id
+        val curIdx = list.indexOfFirst { it.id == curId }
+        val latestList = rememberUpdatedState(list)
+        val latestCur = rememberUpdatedState(curId)
+        val pager = rememberPagerState(initialPage = curIdx.coerceAtLeast(0)) { latestList.value.size }
+        // Station changed elsewhere (preset, list, following): bring the pager along.
+        LaunchedEffect(curIdx) {
+            if (curIdx >= 0 && pager.currentPage != curIdx && !pager.isScrollInProgress) pager.animateScrollToPage(curIdx)
+        }
+        // The finger let go and the pager settled on a neighbour: that is the tune.
+        LaunchedEffect(pager) {
+            snapshotFlow { pager.settledPage }.collect { page ->
+                val st = latestList.value.getOrNull(page) ?: return@collect
+                if (st.id != latestCur.value) actions.selectStation(st)
+            }
+        }
+        return StationPaging(list, pager, curIdx)
     }
 
-    /**
-     * Swipe across the now-playing area to change station — left for next, right for previous —
-     * exactly what the arrow keys do. One step per gesture, after [thresholdPx] of travel, so a
-     * nervous thumb doesn't skip three stations; the preset row below keeps its own swipe.
-     */
-    private fun Modifier.swipeStation(actions: RadioActions): Modifier = composed {
-        val thresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
-        pointerInput(actions) {
-            var travel = 0f
-            var fired = false
-            detectHorizontalDragGestures(
-                onDragStart = { travel = 0f; fired = false },
-                onHorizontalDrag = { change, dx ->
-                    travel += dx
-                    if (!fired && kotlin.math.abs(travel) > thresholdPx) {
-                        fired = true
-                        if (travel < 0) stepNext(actions) else stepPrev(actions)
-                    }
-                    change.consume()
-                },
-            )
+    /** Page the station pager one step; at the ends fall back to the wrap-around of next/prev. */
+    @OptIn(ExperimentalFoundationApi::class)
+    private fun step(paging: StationPaging, scope: kotlinx.coroutines.CoroutineScope, actions: RadioActions, delta: Int) {
+        val target = paging.pager.currentPage + delta
+        if (paging.currentIndex >= 0 && target in paging.list.indices) scope.launch { paging.pager.animateScrollToPage(target) }
+        else if (delta > 0) actions.next() else actions.prev()
+    }
+
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    private fun StationPager(
+        paging: StationPaging,
+        state: RadioUiState,
+        modifier: Modifier,
+        content: @Composable (station: Station?, current: Boolean) -> Unit,
+    ) {
+        if (paging.currentIndex < 0) {
+            Box(modifier) { content(state.nowPlaying?.station, true) }
+            return
         }
+        HorizontalPager(
+            state = paging.pager, modifier = modifier, beyondBoundsPageCount = 1,
+        ) { i -> content(paging.list.getOrNull(i), i == paging.currentIndex) }
+    }
+
+
+    /** A neighbouring page while dragging: logo already shown above, here just the name. */
+    @Composable
+    private fun NeighbourName(st: Station?) {
+        Text(
+            st?.name?.let { if (skin.titleUppercase) it.uppercase() else it } ?: "—",
+            color = appColors.text, fontSize = skin.font(skin.titleSize), fontWeight = skin.titleWeight,
+            letterSpacing = skin.titleTracking.em, textAlign = TextAlign.Center, maxLines = 1,
+            softWrap = false, overflow = TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth(),
+        )
     }
 
     /* ----------------------------------------------------------- preset page */
@@ -623,21 +651,25 @@ object TilesFrontend : RadioFrontend {
         pendingStore: Station?,
         onStored: () -> Unit,
     ) {
+        val paging = rememberStationPaging(state, actions)
+        val scope = rememberCoroutineScope()
         Column(Modifier.fillMaxSize()) {
             Row(
-                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(8)).swipeStation(actions),
+                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(8)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                StepArrow("‹") { stepPrev(actions) }
-                Box(Modifier.weight(1f)) { SlidingStation(state.nowPlaying?.station?.id) {
+                StepArrow("‹") { step(paging, scope, actions, -1) }
+                StationPager(paging, state, Modifier.weight(1f)) { st, current ->
                     Column(
                         Modifier.fillMaxWidth().padding(horizontal = skin.pad(8)),
                         horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
                     ) {
-                        NowPlayingBlock(state, actions, pendingStore)
+                        if (current) NowPlayingBlock(state, actions, pendingStore)
+                        else NeighbourName(st)
                     }
-                } }
-                StepArrow("›") { stepNext(actions) }
+                }
+                StepArrow("›") { step(paging, scope, actions, +1) }
             }
 
             when (state.viewMode) {
@@ -671,48 +703,61 @@ object TilesFrontend : RadioFrontend {
         pendingStore: Station?,
         onStored: () -> Unit,
     ) {
+        val paging = rememberStationPaging(state, actions)
+        val scope = rememberCoroutineScope()
         Column(Modifier.fillMaxSize()) {
-            Column(
-                Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(24)).swipeStation(actions),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                val st = state.nowPlaying?.station
-                SlidingStation(st?.id) {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                // Upright there is room for the picture: the slideshow while one is running,
-                // otherwise the station logo — the landscape page has neither above the name.
-                if (state.viewMode != ViewMode.RADIO_TEXT && st != null) {
-                    // A slideshow is 4:3 and worth the width; a logo is a square and needs less. The
-                    // picture usually arrives a moment after the switch — crossfade it in over the logo.
-                    Crossfade(targetState = state.nowPlaying?.slideshowImage != null, animationSpec = tween(400), label = "art") { hasSlide ->
-                        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                            if (hasSlide) {
-                                Slideshow(state, Modifier.fillMaxWidth(0.72f).aspectRatio(4f / 3f).clip(RoundedCornerShape(skin.pad(20))))
-                            } else {
-                                StationLogo(
-                                    st, Modifier.fillMaxWidth(0.4f).aspectRatio(1f).clip(RoundedCornerShape(skin.pad(28))).background(appColors.panel),
-                                    initialsSize = skin.font(64.sp),
-                                )
+            // The block sits centred in the free height; the arrows stay put beside the name while
+            // the page content slides between them. The art frame has a fixed height, so the name's
+            // offset from the block centre is known: half the frame plus the gap below it.
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).padding(horizontal = skin.pad(8))) {
+            val pagerWidth = maxWidth - touchMin * 2
+            val hasArt = state.viewMode != ViewMode.RADIO_TEXT && state.nowPlaying != null
+            val artFrame = if (hasArt) pagerWidth * ART_WIDTH * 3f / 4f + skin.pad(24) else 0.dp
+            // Anchored from the top, not centred: the block only ever grows downwards, so the
+            // picture and the name stay put whether or not a text line appears beneath them.
+            val topPad = maxHeight * 0.08f
+            val titleDp = with(LocalDensity.current) { skin.font(skin.titleSize).toDp() }
+            val arrowY = topPad + artFrame + titleDp * 0.6f - touchMin / 2
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.Top) {
+            StepArrow("‹", Modifier.offset(y = arrowY)) { step(paging, scope, actions, -1) }
+            StationPager(paging, state, Modifier.weight(1f).fillMaxHeight()) { st, current ->
+                Column(
+                    Modifier.fillMaxSize().padding(horizontal = skin.pad(8), vertical = 0.dp).padding(top = topPad),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Top,
+                ) {
+                    // Upright there is room for the picture: the slideshow while one is running,
+                    // otherwise the station logo — the landscape page has neither above the name.
+                    if (state.viewMode != ViewMode.RADIO_TEXT && st != null) {
+                        val hasSlide = current && state.nowPlaying?.slideshowImage != null
+                        // A slideshow is 4:3 and worth the width; a logo is a square and needs less.
+                        // The picture usually arrives a moment after the switch — crossfade it in.
+                        // One fixed 4:3 frame for both, so the name below never moves: the slideshow
+                        // fills it, the logo sits in it as a square of the frame's height.
+                        Box(Modifier.fillMaxWidth(ART_WIDTH).aspectRatio(4f / 3f), contentAlignment = Alignment.Center) {
+                            Crossfade(targetState = hasSlide, animationSpec = tween(400), label = "art") { slide ->
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    if (slide) {
+                                        Slideshow(state, Modifier.fillMaxSize().clip(RoundedCornerShape(skin.pad(20))))
+                                    } else {
+                                        StationLogo(
+                                            st, Modifier.fillMaxHeight().aspectRatio(1f).clip(RoundedCornerShape(skin.pad(28))).background(appColors.panel),
+                                            initialsSize = skin.font(64.sp),
+                                        )
+                                    }
+                                }
                             }
                         }
+                        Spacer(Modifier.height(skin.pad(24)))
                     }
-                    Spacer(Modifier.height(skin.pad(24)))
-                }
-                // Arrows flank the name, as in landscape — the thumb finds them at the edges.
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    StepArrow("‹") { stepPrev(actions) }
-                    Column(
-                        Modifier.weight(1f).padding(horizontal = skin.pad(8)),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        NowPlayingBlock(state, actions, pendingStore)
-                    }
-                    StepArrow("›") { stepNext(actions) }
-                }
-                }
+                    if (current) NowPlayingBlock(state, actions, pendingStore)
+                    else NeighbourName(st)
                 }
             }
+            StepArrow("›", Modifier.offset(y = arrowY)) { step(paging, scope, actions, +1) }
+            }
+            }
+            Spacer(Modifier.height(skin.pad(16)))
             when (state.viewMode) {
                 ViewMode.PRESETS, ViewMode.SLIDESHOW -> {
                     HorizontalPager(
@@ -945,9 +990,9 @@ object TilesFrontend : RadioFrontend {
     }
 
     @Composable
-    private fun StepArrow(glyph: String, onClick: () -> Unit) {
+    private fun StepArrow(glyph: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
         Box(
-            Modifier.size(touchMin).clip(RoundedCornerShape(skin.cornerSmall))
+            modifier.size(touchMin).clip(RoundedCornerShape(skin.cornerSmall))
                 .then(if (skin.filled) Modifier.background(appColors.softBg) else Modifier)
                 .then(
                     if (skin.outlined) {
