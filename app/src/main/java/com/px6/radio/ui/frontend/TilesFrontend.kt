@@ -713,18 +713,21 @@ object TilesFrontend : RadioFrontend {
             val pagerWidth = maxWidth - touchMin * 2
             val hasArt = state.viewMode != ViewMode.RADIO_TEXT && state.nowPlaying != null
             val artFrame = if (hasArt) pagerWidth * ART_WIDTH * 3f / 4f + skin.pad(24) else 0.dp
-            // Anchored from the top, not centred: the block only ever grows downwards, so the
-            // picture and the name stay put whether or not a text line appears beneath them.
-            val topPad = maxHeight * 0.08f
-            val titleDp = with(LocalDensity.current) { skin.font(skin.titleSize).toDp() }
-            val arrowY = topPad + artFrame + titleDp * 0.6f - touchMin / 2
-            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.Top) {
+            // Centred in the free height — but the block has a FIXED height (art frame plus a
+            // reserved slot for name and text line), so it does not move when the text line
+            // appears or disappears. The arrows sit at the name's height within that block.
+            val density = LocalDensity.current
+            val titleDp = with(density) { skin.font(skin.titleSize).toDp() }
+            val nameSlot = titleDp * 1.3f + with(density) { skin.font(skin.bodySize).toDp() } * 1.6f + skin.pad(6)
+            val block = artFrame + nameSlot
+            val arrowY = -block / 2 + artFrame + titleDp * 0.65f
+            Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             StepArrow("‹", Modifier.offset(y = arrowY)) { step(paging, scope, actions, -1) }
             StationPager(paging, state, Modifier.weight(1f).fillMaxHeight()) { st, current ->
                 Column(
-                    Modifier.fillMaxSize().padding(horizontal = skin.pad(8), vertical = 0.dp).padding(top = topPad),
+                    Modifier.fillMaxSize().padding(horizontal = skin.pad(8)),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Top,
+                    verticalArrangement = Arrangement.Center,
                 ) {
                     // Upright there is room for the picture: the slideshow while one is running,
                     // otherwise the station logo — the landscape page has neither above the name.
@@ -750,8 +753,10 @@ object TilesFrontend : RadioFrontend {
                         }
                         Spacer(Modifier.height(skin.pad(24)))
                     }
-                    if (current) NowPlayingBlock(state, actions, pendingStore)
-                    else NeighbourName(st)
+                    Column(Modifier.fillMaxWidth().height(nameSlot), horizontalAlignment = Alignment.CenterHorizontally) {
+                        if (current) NowPlayingBlock(state, actions, pendingStore)
+                        else NeighbourName(st)
+                    }
                 }
             }
             StepArrow("›", Modifier.offset(y = arrowY)) { step(paging, scope, actions, +1) }
