@@ -315,6 +315,8 @@ data class RadioUiState(
     val demoMode: Boolean = true,
     val dabPresent: Boolean = false,
     val dabScanning: Boolean = false,
+    /** elapsedRealtime when the running DAB scan began — for the elapsed/remaining estimate. */
+    val scanStartedAtMs: Long = 0L,
     val scanProgress: Int = 0,
     /** FM tuner (Microntek CarManager) present? If not, this is a pure DAB+ app. */
     val fmAvailable: Boolean = false,

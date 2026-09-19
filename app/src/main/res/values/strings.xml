@@ -290,4 +290,8 @@
     <string name="settings_orientation_hint">Querformat ist die sichere Wahl für Autoradios. „Automatisch“ dreht mit dem Gerät — für Tablets und hochkant eingebaute Displays</string>
     <string name="settings_orientation_landscape">Querformat</string>
     <string name="settings_orientation_auto">Automatisch</string>
+    <string name="settings_scan_channel">Kanal %1$s · %2$s — %3$d von %4$d</string>
+    <string name="settings_scan_found">%1$d Ensembles, %2$d Sender gefunden</string>
+    <string name="settings_scan_time">%1$s vergangen · etwa %2$s verbleibend</string>
+    <string name="settings_scan_time_elapsed">%1$s vergangen</string>
 </resources>

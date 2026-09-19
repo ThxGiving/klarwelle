@@ -287,4 +287,8 @@
     <string name="settings_orientation_hint">Orizzontale è la scelta sicura per le autoradio. «Automatico» ruota con il dispositivo: per tablet e display verticali</string>
     <string name="settings_orientation_landscape">Orizzontale</string>
     <string name="settings_orientation_auto">Automatico</string>
+    <string name="settings_scan_channel">Canale %1$s · %2$s — %3$d di %4$d</string>
+    <string name="settings_scan_found">%1$d ensemble, %2$d stazioni trovate</string>
+    <string name="settings_scan_time">%1$s trascorso · circa %2$s rimanente</string>
+    <string name="settings_scan_time_elapsed">%1$s trascorso</string>
 </resources>

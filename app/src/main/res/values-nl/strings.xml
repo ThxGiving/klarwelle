@@ -288,4 +288,8 @@
     <string name="settings_orientation_hint">Liggend is de veilige keuze voor autoradio’s. „Automatisch” draait mee met het apparaat — voor tablets en staande schermen</string>
     <string name="settings_orientation_landscape">Liggend</string>
     <string name="settings_orientation_auto">Automatisch</string>
+    <string name="settings_scan_channel">Kanaal %1$s · %2$s — %3$d van %4$d</string>
+    <string name="settings_scan_found">%1$d ensembles, %2$d zenders gevonden</string>
+    <string name="settings_scan_time">%1$s verstreken · nog ongeveer %2$s</string>
+    <string name="settings_scan_time_elapsed">%1$s verstreken</string>
 </resources>

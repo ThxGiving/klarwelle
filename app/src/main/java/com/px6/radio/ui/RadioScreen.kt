@@ -105,6 +105,9 @@ fun RadioScreen(vm: RadioViewModel) {
             dabPresent = state.dabPresent,
             dabScanning = state.dabScanning,
             scanProgress = state.scanProgress,
+            scanStartedAtMs = state.scanStartedAtMs,
+            dabStations = state.stations.filter { it.band == Band.DAB },
+            stationCounts = state.stations.groupingBy { it.band }.eachCount(),
             fmAvailable = state.fmAvailable,
             fmSeeking = state.fmSeeking,
             headlightOn = state.headlightOn,
@@ -163,6 +166,12 @@ fun RadioScreen(vm: RadioViewModel) {
     }
     }
         // ASA/EWS alert above EVERYTHING — both frontends AND the settings screen.
+        // Scan progress as a hairline at the top, over either screen — the settings can be left
+        // while the tuner keeps sweeping.
+        ScanProgressLine(
+            dabScanning = state.dabScanning, dabPercent = state.scanProgress, fmSeeking = state.fmSeeking,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
         state.ewsAlert?.let { com.px6.radio.ews.EwsAlertOverlay(it, onDismiss = vm::dismissEwsAlert) }
     }
 }

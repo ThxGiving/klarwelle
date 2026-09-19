@@ -912,6 +912,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             dabPresent = d.tunerPresent,
             dabScanning = d.scanning,
             scanProgress = d.scanProgress,
+            scanStartedAtMs = if (d.scanning && !s.dabScanning) android.os.SystemClock.elapsedRealtime() else s.scanStartedAtMs,
             // Clear the "tuning…" loader once the selected DAB service is actually audible.
             tuningStationId = if (d.audibleId != null && d.audibleId == s.tuningStationId) null else s.tuningStationId,
             fmAvailable = if (live && !BuildConfig.DEBUG) (fm?.available == true) else s.fmAvailable,
@@ -2005,6 +2006,31 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
      *
      * [locationCsv] is a comma-separated list of "zone:digithex" codes ("" = whole-ensemble alert).
      */
+    /** Debug/emulator only: a fake 41-channel DAB scan (~30 s) that finds a station now and then,
+     *  so the progress line and the settings detail block can be seen without a stick. */
+    fun debugSimulateScan() {
+        if (!BuildConfig.DEBUG || _state.value.dabScanning) return
+        viewModelScope.launch {
+            // dabPresent too, so the DAB+ settings page (and its detail block) exists on the emulator.
+            _state.update { it.copy(dabPresent = true, dabScanning = true, scanProgress = 0, scanStartedAtMs = android.os.SystemClock.elapsedRealtime()) }
+            val names = listOf("WDR 2", "1LIVE", "WDR 3", "WDR 4", "WDR 5", "Radio Bochum", "Antenne Unna", "Deutschlandfunk", "DLF Kultur", "DLF Nova")
+            var found = 0
+            for (i in 1..41) {
+                delay(700)
+                val add = i % 4 == 0 && found < names.size
+                _state.update { s ->
+                    val st = if (add) {
+                        val ens = if (i < 20) "WDR NRW" else "Bundesmux"
+                        s.stations + Station("${100 + i}.d${300 + found}", names[found], Band.DAB, ens, names[found].take(2), 0, 0, ensemble = ens, bitrateKbps = 96)
+                    } else s.stations
+                    if (add) found++
+                    s.copy(scanProgress = i * 100 / 41, stations = st)
+                }
+            }
+            _state.update { it.copy(dabScanning = false, scanProgress = 0) }
+        }
+    }
+
     fun debugSimulateEws(
         form: Int, stage: Int, test: Boolean, otherEnsemble: Boolean,
         idValue: Int, incidentId: Int, locationCsv: String, tunedEnsembleId: Int = 0x100C,

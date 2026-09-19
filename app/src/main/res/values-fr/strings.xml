@@ -287,4 +287,8 @@
     <string name="settings_orientation_hint">Le paysage est le choix sûr pour les autoradios. « Automatique » suit l’appareil — pour tablettes et écrans verticaux</string>
     <string name="settings_orientation_landscape">Paysage</string>
     <string name="settings_orientation_auto">Automatique</string>
+    <string name="settings_scan_channel">Canal %1$s · %2$s — %3$d sur %4$d</string>
+    <string name="settings_scan_found">%1$d ensembles, %2$d stations trouvées</string>
+    <string name="settings_scan_time">%1$s écoulé · environ %2$s restant</string>
+    <string name="settings_scan_time_elapsed">%1$s écoulé</string>
 </resources>

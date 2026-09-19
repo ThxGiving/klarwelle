@@ -287,4 +287,8 @@
     <string name="settings_orientation_hint">Horizontal es la opción segura para radios de coche. «Automática» gira con el dispositivo: para tabletas y pantallas verticales</string>
     <string name="settings_orientation_landscape">Horizontal</string>
     <string name="settings_orientation_auto">Automática</string>
+    <string name="settings_scan_channel">Canal %1$s · %2$s — %3$d de %4$d</string>
+    <string name="settings_scan_found">%1$d ensembles, %2$d emisoras encontradas</string>
+    <string name="settings_scan_time">%1$s transcurrido · quedan unos %2$s</string>
+    <string name="settings_scan_time_elapsed">%1$s transcurrido</string>
 </resources>

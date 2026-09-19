@@ -73,6 +73,7 @@ class MainActivity : ComponentActivity() {
             when (intent?.action) {
                 "com.px6.radio.DEBUG_IP_PLAY" -> vm.debugPlayIp()
                 "com.px6.radio.DEBUG_IP_STOP" -> vm.debugStopIp()
+                "com.px6.radio.DEBUG_SCAN" -> vm.debugSimulateScan()
                 "com.px6.radio.DEBUG_EWS" -> {
                     // Optional scenario setup (debug only): set the receiver location code / test toggle
                     // so the positive matching paths can be demonstrated. Only touches settings, not
@@ -122,6 +123,7 @@ class MainActivity : ComponentActivity() {
                 this, debugIpReceiver,
                 IntentFilter().apply {
                     addAction("com.px6.radio.DEBUG_IP_PLAY")
+                    addAction("com.px6.radio.DEBUG_SCAN")
                     addAction("com.px6.radio.DEBUG_IP_STOP")
                     addAction("com.px6.radio.DEBUG_EWS")
                 },

@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -78,6 +79,9 @@ fun SettingsScreen(
     dabPresent: Boolean,
     dabScanning: Boolean,
     scanProgress: Int,
+    scanStartedAtMs: Long,
+    dabStations: List<Station>,
+    stationCounts: Map<Band, Int>,
     fmAvailable: Boolean,
     fmSeeking: Boolean,
     headlightOn: Boolean?,
@@ -147,19 +151,23 @@ fun SettingsScreen(
                         settings = settings,
                         dabPresent = dabPresent,
                         logoCount = logoCount,
-                        internetCount = internetStations.size,
+                        internetCount = stationCounts[Band.IP] ?: 0,
                         onOpen = { page = it },
                     )
                     Page.BANDS -> BandsPage(
                         dabPresent = dabPresent,
                         fmAvailable = fmAvailable,
-                        internetCount = internetStations.size,
+                        counts = stationCounts,
+                        dabScanning = dabScanning,
+                        scanProgress = scanProgress,
                         onOpen = { page = it },
                     )
                     Page.BAND_DAB -> BandDabPage(
                         settings = settings,
                         dabScanning = dabScanning,
                         scanProgress = scanProgress,
+                        scanStartedAtMs = scanStartedAtMs,
+                        dabStations = dabStations,
                         fmAvailable = fmAvailable,
                         onScanDab = onScanDab,
                         onChange = onChange,
@@ -344,19 +352,22 @@ private fun RootPage(
 private fun BandsPage(
     dabPresent: Boolean,
     fmAvailable: Boolean,
-    internetCount: Int,
+    counts: Map<Band, Int>,
+    dabScanning: Boolean,
+    scanProgress: Int,
     onOpen: (Page) -> Unit,
 ) {
-    if (dabPresent) NavRow("DAB+", null) { onOpen(Page.BAND_DAB) }
-    if (fmAvailable) {
-        NavRow("FM", null) { onOpen(Page.BAND_FM) }
-        NavRow("AM", null) { onOpen(Page.BAND_AM) }
+    // Every band says how many stations it holds — the same at a glance for all four.
+    @Composable fun count(band: Band): String {
+        val n = counts[band] ?: 0
+        return if (n == 0) stringResource(R.string.settings_none) else stringResource(R.string.settings_station_count, n)
     }
-    NavRow(
-        stringResource(R.string.settings_internet),
-        if (internetCount == 0) stringResource(R.string.settings_none)
-        else stringResource(R.string.settings_station_count, internetCount),
-    ) { onOpen(Page.INTERNET) }
+    if (dabPresent) NavRow("DAB+", if (dabScanning) "$scanProgress %" else count(Band.DAB)) { onOpen(Page.BAND_DAB) }
+    if (fmAvailable) {
+        NavRow("FM", count(Band.FM)) { onOpen(Page.BAND_FM) }
+        NavRow("AM", count(Band.AM)) { onOpen(Page.BAND_AM) }
+    }
+    NavRow(stringResource(R.string.settings_internet), count(Band.IP)) { onOpen(Page.INTERNET) }
 }
 
 /** DAB+: the station list builds itself, so a rescan is the only thing to offer. */
@@ -365,6 +376,8 @@ private fun BandDabPage(
     settings: Settings,
     dabScanning: Boolean,
     scanProgress: Int,
+    scanStartedAtMs: Long,
+    dabStations: List<Station>,
     fmAvailable: Boolean,
     onScanDab: () -> Unit,
     onChange: ((Settings) -> Settings) -> Unit,
@@ -378,6 +391,7 @@ private fun BandDabPage(
         progress = if (dabScanning) scanProgress / 100f else null,
         onClick = onScanDab,
     )
+    if (dabScanning) ScanDetails(scanProgress, scanStartedAtMs, dabStations)
     CheckRow(
         stringResource(R.string.settings_show_signal),
         stringResource(R.string.settings_show_signal_hint),
@@ -1421,6 +1435,40 @@ private fun CheckRow(label: String, hint: String?, checked: Boolean, onChange: (
             }
         }
     }
+}
+
+/**
+ * What a minute-long scan is doing right now: the channel under test, what has been found so far,
+ * and how long it has been / will be. The percentage alone made the wait feel stuck.
+ */
+@Composable
+private fun ScanDetails(percent: Int, startedAtMs: Long, dabStations: List<Station>) {
+    // Ticks once a second while visible, so the elapsed time moves even when the tuner is quiet.
+    var now by remember { mutableStateOf(android.os.SystemClock.elapsedRealtime()) }
+    LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1000); now = android.os.SystemClock.elapsedRealtime() } }
+    val channels = com.px6.radio.model.DAB_BAND_III
+    val idx = (percent * channels.size / 100).coerceIn(0, channels.size - 1)
+    val ch = channels[idx]
+    val ensembles = dabStations.mapNotNull { it.ensemble }.distinct().size
+    val elapsedS = if (startedAtMs > 0) ((now - startedAtMs) / 1000).coerceAtLeast(0) else 0
+    val remainingS = if (percent in 3..99 && elapsedS > 2) (elapsedS * (100 - percent) / percent) else -1
+    fun mmss(s: Long) = "%d:%02d".format(s / 60, s % 60)
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+        Text(
+            stringResource(R.string.settings_scan_channel, ch.name, "%.3f MHz".format(ch.khz / 1000f), idx + 1, channels.size),
+            color = appColors.text, fontSize = 15.sp,
+        )
+        Text(
+            stringResource(R.string.settings_scan_found, ensembles, dabStations.size),
+            color = appColors.muted, fontSize = 13.sp,
+        )
+        Text(
+            if (remainingS >= 0) stringResource(R.string.settings_scan_time, mmss(elapsedS), mmss(remainingS))
+            else stringResource(R.string.settings_scan_time_elapsed, mmss(elapsedS)),
+            color = appColors.muted, fontSize = 13.sp,
+        )
+    }
+    HairLine()
 }
 
 /** Row that does something, with its button on the right. */

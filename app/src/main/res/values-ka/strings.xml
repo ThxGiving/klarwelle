@@ -287,4 +287,8 @@
     <string name="settings_orientation_hint">ჰორიზონტალური უსაფრთხო არჩევანია ავტომაგნიტოლებისთვის. „ავტომატური“ ტრიალებს მოწყობილობასთან ერთად — პლანშეტებისა და ვერტიკალური ეკრანებისთვის</string>
     <string name="settings_orientation_landscape">ჰორიზონტალური</string>
     <string name="settings_orientation_auto">ავტომატური</string>
+    <string name="settings_scan_channel">არხი %1$s · %2$s — %3$d / %4$d</string>
+    <string name="settings_scan_found">%1$d ანსამბლი, %2$d სადგური ნაპოვნია</string>
+    <string name="settings_scan_time">%1$s გავიდა · დაახლ. %2$s დარჩა</string>
+    <string name="settings_scan_time_elapsed">%1$s გავიდა</string>
 </resources>

@@ -287,4 +287,8 @@
     <string name="settings_orientation_hint">Landscape is the safe choice for head units. “Automatic” turns with the device — for tablets and upright displays</string>
     <string name="settings_orientation_landscape">Landscape</string>
     <string name="settings_orientation_auto">Automatic</string>
+    <string name="settings_scan_channel">Channel %1$s · %2$s — %3$d of %4$d</string>
+    <string name="settings_scan_found">%1$d ensembles, %2$d stations found</string>
+    <string name="settings_scan_time">%1$s elapsed · about %2$s left</string>
+    <string name="settings_scan_time_elapsed">%1$s elapsed</string>
 </resources>
