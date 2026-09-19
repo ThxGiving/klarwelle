@@ -3,6 +3,8 @@ package com.px6.radio.dab
 import com.px6.radio.diag.Diag
 import com.px6.radio.diag.DiagFile
 import android.content.Context
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import android.util.Log
 import com.px6.radio.audio.DabAudioSink
 import com.px6.radio.model.Band
@@ -83,6 +85,8 @@ class DabController(private val appContext: Context) :
     RadioStatusListener, TunerListener, com.px6.radio.following.DabFollowSource {
 
     private val radio: Radio = Radio.getInstance()
+    /** For the scan watchdog only — cancelled in [release]. */
+    private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
     private val sink = DabAudioSink()
     private val services = ConcurrentHashMap<String, RadioServiceDab>()
 
@@ -374,6 +378,7 @@ class DabController(private val appContext: Context) :
     }
 
     fun release() {
+        scope.cancel()
         // Full teardown, not just the AudioTrack: stop the omri DAB service + tuners so the native
         // decoder actually stops. Releasing only the sink left omri decoding on — the audio kept
         // playing after the Activity was gone, and a relaunch started a second service on top of it
@@ -508,22 +513,49 @@ class DabController(private val appContext: Context) :
     fun seedEwsEnsembleIds(ids: Set<Int>) =
         _state.update { it.copy(ewsEnsembleIds = it.ewsEnsembleIds + ids) }
 
+    /**
+     * Stop a scan the tuner has gone quiet on: no progress step or found service for
+     * [SCAN_STALL_MS]. Left alone, a stalled omri scan kept `scanning` true forever — button
+     * disabled, pill lit, nothing happening. The user can start again; the tuner stays usable.
+     */
+    fun cancelScan(reason: String) {
+        omriStep("scan cancelled: $reason")
+        val tuner = dabTuners().firstOrNull()
+        runCatching { tuner?.stopRadioServiceScan() }
+        _state.update { it.copy(scanning = false) }
+        reportError("Suchlauf abgebrochen: $reason")
+    }
+
+    private var scanWatchdog: kotlinx.coroutines.Job? = null
+    private fun kickScanWatchdog() {
+        scanWatchdog?.cancel()
+        scanWatchdog = scope.launch {
+            kotlinx.coroutines.delay(SCAN_STALL_MS)
+            if (_state.value.scanning) cancelScan("keine Rückmeldung vom Tuner seit ${SCAN_STALL_MS / 1000} s")
+        }
+    }
+
     override fun tunerScanStarted(tuner: Tuner) =
         // A scan re-derives the ensemble landscape, so the EWS set is rebuilt with it: an ensemble
         // that no longer signals FIG 0/15 must be able to drop out again, which a purely additive set
         // (restored from disk, then only ever added to) could never do.
-        _state.update { it.copy(scanning = true, scanProgress = 0, ewsEnsembleIds = emptySet()) }
+        _state.update { it.copy(scanning = true, scanProgress = 0, ewsEnsembleIds = emptySet()) }.also { kickScanWatchdog() }
 
-    override fun tunerScanProgress(tuner: Tuner, percentScanned: Int) =
+    override fun tunerScanProgress(tuner: Tuner, percentScanned: Int) {
         _state.update { it.copy(scanProgress = percentScanned) }
+        kickScanWatchdog()
+    }
 
     override fun tunerScanFinished(tuner: Tuner) {
+        scanWatchdog?.cancel()
         _state.update { it.copy(scanning = false) }
         rebuildStations(tuner)
     }
 
-    override fun tunerScanServiceFound(tuner: Tuner, foundService: RadioService) =
+    override fun tunerScanServiceFound(tuner: Tuner, foundService: RadioService) {
         rebuildStations(tuner)
+        kickScanWatchdog()
+    }
 
     override fun radioServiceStarted(tuner: Tuner, startedRadioService: RadioService) {
         // Listener subscription happens in tune().
@@ -631,6 +663,8 @@ class DabController(private val appContext: Context) :
     private companion object {
         const val TAG = "DabController"
         const val PROBE_SETTLE_MS = 1500L   // let reception settle after a silent probe tune
+        /** A healthy scan steps every ~2 s; this much silence means the tuner is stuck. */
+        const val SCAN_STALL_MS = 25_000L
 
         /** How often an EWS *heartbeat* may be written to klarwelle-ews.txt. Alerts are never rate-limited;
          *  heartbeats arrive ~1/s and only need to prove the ensemble is still signalling. */

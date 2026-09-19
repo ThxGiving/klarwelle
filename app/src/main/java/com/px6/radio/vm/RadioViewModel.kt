@@ -749,6 +749,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         // The MCU sweep reports no percentage, but it walks the band upwards and reports where it
         // is — so the position in the band IS the progress. Never goes backwards within a sweep.
         if (_state.value.fmSeeking && f.freqKhz > 0) {
+            if (freqChanged) fmScanLastEventMs = android.os.SystemClock.elapsedRealtime()
             val s = _state.value
             val band = if (s.selectedBand == Band.AM) Band.AM else Band.FM
             val p = TuningProfile.forBand(band, s.settings.fmRegion)
@@ -1809,10 +1810,20 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                 }
                 delay(TUNE_SETTLE_MS)
                 tuner.autoScan()   // hits arrive on onFmScanHit; end signalled via onFmScanEnd → done
-                // Wait for the MCU seek-end, or give up after a bounded time — WITHOUT cancelling the
-                // coroutine, so a normal end is not mistaken for an error (see the CancellationException).
-                kotlinx.coroutines.withTimeoutOrNull(AUTOSCAN_TIMEOUT_MS) { done.await() }
+                // Wait for the MCU seek-end. Two guards, neither cancels the coroutine (a normal end
+                // must not read as an error): a STALL watchdog — no hit and no frequency report for
+                // SCAN_STALL_MS means the box stopped sweeping — and a hard ceiling for the whole sweep.
+                fmScanLastEventMs = android.os.SystemClock.elapsedRealtime()
+                val startedAt = fmScanLastEventMs
+                var stalled = false
+                while (!done.isCompleted) {
+                    delay(500)
+                    val now = android.os.SystemClock.elapsedRealtime()
+                    if (now - fmScanLastEventMs > SCAN_STALL_MS) { stalled = true; break }
+                    if (now - startedAt > AUTOSCAN_TIMEOUT_MS) break
+                }
                 tuner.cancelAutoScan()
+                if (stalled) addError("FM-Suchlauf abgebrochen: keine Rückmeldung vom Tuner seit ${SCAN_STALL_MS / 1000} s")
                 persistNow()
             } catch (t: Throwable) {
                 if (t is kotlinx.coroutines.CancellationException) throw t   // a real cancel (manual tune) — not an error
@@ -1826,8 +1837,12 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         }
     }
 
+    /** Last hit or frequency report while sweeping — the FM scan's stall watchdog reads it. */
+    @Volatile private var fmScanLastEventMs = 0L
+
     /** One station the MCU auto-seek locked onto — add it (name fills in later from RDS). */
     private fun onFmScanHit(khz: Int) {
+        fmScanLastEventMs = android.os.SystemClock.elapsedRealtime()
         if (khz <= 0 || scanHits >= MAX_SCAN_STATIONS) return
         val band = if (_state.value.selectedBand == Band.AM) Band.AM else Band.FM
         val id = if (band == Band.AM) "am.$khz" else "fm.$khz"
@@ -2735,6 +2750,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
 
         /** Upper bound for an MCU band sweep if the box never sends a seek-end (safety net). */
         const val AUTOSCAN_TIMEOUT_MS = 90_000L
+        /** No hit and no frequency movement for this long ⇒ the sweep is stuck; abort it. */
+        const val SCAN_STALL_MS = 25_000L
 
         /** Listen to an FM station at least this long before the silent DAB probe runs — only offer
          *  when you've genuinely settled, never while tuning around (anti tuner-thrash, non-nagging). */
