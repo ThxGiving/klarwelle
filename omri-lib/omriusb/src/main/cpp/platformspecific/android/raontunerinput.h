@@ -27,6 +27,8 @@
 #include "../../concurrent_queue.h"
 
 #include <memory>
+#include <mutex>
+#include <thread>
 #include <array>
 
 class RaonTunerInput final : public DabUsbTunerInput, DabEnsemble {
@@ -101,6 +103,11 @@ private:
     ConcurrentQueue<std::function<void(void)>> m_commandQueue;
     std::atomic<bool> m_commandThreadRunning{false};
     std::thread m_commandThread;
+    /* Guards start/stop of the FIC and command threads. They are driven from three threads (the
+     * USB-permission callback, the JNI/Java side, the scan-command thread); without the lock a
+     * stop could clear the running flag while a start was still assigning the thread, leaving a
+     * joinable thread behind — and the next assignment to it calls std::terminate. */
+    std::mutex m_threadMutex;
 
     //int m_antLvlCnt{100};
     int m_antLvlCnt{10};

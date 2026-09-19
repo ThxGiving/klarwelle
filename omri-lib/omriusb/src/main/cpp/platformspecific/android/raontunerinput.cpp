@@ -296,6 +296,13 @@ void RaonTunerInput::startServiceScan() {
     if(!m_isScanning) {
         stopReadDataThread();
 
+        // The READY callback at the end of a scan runs ON the scan-command thread; if Java answers
+        // it with another scan (empty result), this is that thread — it cannot join itself. Then
+        // simply queue the next scan on the thread that is already running.
+        if(m_scanCommandThread.joinable() && m_scanCommandThread.get_id() == std::this_thread::get_id()) {
+            m_scanCommandQueue.push(std::bind(&RaonTunerInput::startScanCommand, this));
+            return;
+        }
         m_scanCommandThreadRunning = false;
         if(m_scanCommandThread.joinable()) {
             m_scanCommandThread.join();
@@ -1237,43 +1244,51 @@ void RaonTunerInput::readMsc() {
 
 void RaonTunerInput::startReadFicThread() {
     std::cout << LOG_TAG << "Starting FIC thread..." << std::endl;
-
-    if(!m_readFicThreadRunning) {
-        m_readFicThreadRunning = true;
-        m_readFicThread = std::thread(&RaonTunerInput::threadedFicRead, this);
+    std::lock_guard<std::mutex> lock(m_threadMutex);
+    if(m_readFicThreadRunning) {
+        return;
     }
+    // A thread that was flagged stopped but never joined (a stop that raced a start) is
+    // reaped here; assigning over a joinable std::thread would terminate the process.
+    if(m_readFicThread.joinable()) {
+        m_readFicThread.join();
+    }
+    m_readFicThreadRunning = true;
+    m_readFicThread = std::thread(&RaonTunerInput::threadedFicRead, this);
 }
 
 void RaonTunerInput::stopReadFicThread() {
     std::cout << LOG_TAG << "Stopping FIC thread..." << std::endl;
-    if(m_readFicThreadRunning) {
-        m_readFicThreadRunning = false;
-        if(m_readFicThread.joinable()) {
-            std::cout << LOG_TAG << "Joining FIC thread..." << std::endl;
-            m_readFicThread.join();
-            std::cout << LOG_TAG << "Joining FIC thread done" << std::endl;
-        }
+    std::lock_guard<std::mutex> lock(m_threadMutex);
+    m_readFicThreadRunning = false;
+    if(m_readFicThread.joinable() && m_readFicThread.get_id() != std::this_thread::get_id()) {
+        std::cout << LOG_TAG << "Joining FIC thread..." << std::endl;
+        m_readFicThread.join();
+        std::cout << LOG_TAG << "Joining FIC thread done" << std::endl;
     }
 }
 
 void RaonTunerInput::startReadDataThread() {
     std::cout << LOG_TAG << "Starting Data thread..." << std::endl;
-
-    if(!m_commandThreadRunning) {
-        m_commandThreadRunning = true;
-        m_commandThread = std::thread(&RaonTunerInput::commandProcessing, this);
+    std::lock_guard<std::mutex> lock(m_threadMutex);
+    if(m_commandThreadRunning) {
+        return;
     }
+    if(m_commandThread.joinable()) {
+        m_commandThread.join();
+    }
+    m_commandThreadRunning = true;
+    m_commandThread = std::thread(&RaonTunerInput::commandProcessing, this);
 }
 
 void RaonTunerInput::stopReadDataThread() {
     std::cout << LOG_TAG << "Stopping Data thread..." << std::endl;
-    if(m_commandThreadRunning) {
-        m_commandThreadRunning = false;
-        if(m_commandThread.joinable()) {
-            std::cout << LOG_TAG << "Joining Data thread..." << std::endl;
-            m_commandThread.join();
-            std::cout << LOG_TAG << "Joining Data thread done" << std::endl;
-        }
+    std::lock_guard<std::mutex> lock(m_threadMutex);
+    m_commandThreadRunning = false;
+    if(m_commandThread.joinable() && m_commandThread.get_id() != std::this_thread::get_id()) {
+        std::cout << LOG_TAG << "Joining Data thread..." << std::endl;
+        m_commandThread.join();
+        std::cout << LOG_TAG << "Joining Data thread done" << std::endl;
     }
 }
 

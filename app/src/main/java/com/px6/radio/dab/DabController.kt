@@ -476,13 +476,21 @@ class DabController(private val appContext: Context) :
 
     override fun tunerDetached(detachedTuner: Tuner) = refreshTunerPresent()
 
+    /** The one automatic scan of a session (see [tunerStatusChanged]). */
+    @Volatile private var autoScanned = false
+
     // ---- TunerListener ----
     override fun tunerStatusChanged(tuner: Tuner, newStatus: TunerStatus) {
         Log.i(TAG, "omri-step: tunerStatusChanged -> $newStatus")
         if (newStatus == TunerStatus.TUNER_STATUS_INITIALIZED) {
             // Device is open now — safe to read services and (auto) scan.
             rebuildStations(tuner)
-            if (tuner.radioServices.isEmpty()) {
+            // First start with an empty tuning memory: scan once, on our own. Once only — an empty
+            // RESULT (no antenna, no coverage) must not trigger the next scan from inside the
+            // end-of-scan callback; that re-entry raced the tuner's thread hand-over and aborted
+            // the process. The user can rescan from the settings at any time.
+            if (tuner.radioServices.isEmpty() && !autoScanned) {
+                autoScanned = true
                 try {
                     tuner.startRadioServiceScan()
                 } catch (t: Throwable) {

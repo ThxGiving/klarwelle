@@ -12,6 +12,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <unwind.h>
+#include <dlfcn.h>
 
 namespace {
 
@@ -48,7 +49,17 @@ namespace {
         BtState* st = (BtState*) arg;
         uintptr_t ip = _Unwind_GetIP(ctx);
         if (ip != 0) {
-            wrs(st->fd, "  #"); wrdec(st->fd, st->count); wrs(st->fd, " "); wrhex(st->fd, ip); wrs(st->fd, "\n");
+            wrs(st->fd, "  #"); wrdec(st->fd, st->count); wrs(st->fd, " "); wrhex(st->fd, ip);
+            // Module + offset, so the line can be fed to llvm-symbolizer without guessing the load
+            // base. dladdr is not strictly async-signal-safe, but the process is dying anyway and a
+            // backtrace nobody can read is worth nothing.
+            Dl_info info;
+            if (dladdr((void*) ip, &info) && info.dli_fname != nullptr) {
+                const char* name = info.dli_fname;
+                for (const char* p = name; *p; ++p) if (*p == '/') name = p + 1;
+                wrs(st->fd, "  "); wrs(st->fd, name); wrs(st->fd, "+"); wrhex(st->fd, ip - (uintptr_t) info.dli_fbase);
+            }
+            wrs(st->fd, "\n");
         }
         if (++st->count >= 48) return _URC_END_OF_STACK;
         return _URC_NO_REASON;
@@ -66,7 +77,7 @@ namespace {
                 wrs(fd, "\nbacktrace:\n");
                 BtState st { fd, 0 };
                 _Unwind_Backtrace(btCb, &st);
-                wrs(fd, "=== end native crash (offline-symbolize the pcs against libirtdab.so) ===\n");
+                wrs(fd, "=== end native crash (llvm-symbolizer --obj=<unstripped libirtdab.so> <offset>) ===\n");
                 close(fd);
             }
         }
