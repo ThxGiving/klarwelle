@@ -29,3 +29,7 @@ mockups/
 design-qa/*/
 design-qa/*.png
 design-qa/run.log
+
+# Claude-Gesprächsverlauf und Memory — lokal, nie ins Repo
+.claude-history/
+.vscode/
