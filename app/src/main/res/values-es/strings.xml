@@ -291,4 +291,6 @@
     <string name="settings_scan_found">%1$d ensembles, %2$d emisoras encontradas</string>
     <string name="settings_scan_time">%1$s transcurrido · quedan unos %2$s</string>
     <string name="settings_scan_time_elapsed">%1$s transcurrido</string>
+    <string name="tiles_scanning_pct">Búsqueda %1$d %%</string>
+    <string name="tiles_scanning">Búsqueda</string>
 </resources>

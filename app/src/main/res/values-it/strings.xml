@@ -291,4 +291,6 @@
     <string name="settings_scan_found">%1$d ensemble, %2$d stazioni trovate</string>
     <string name="settings_scan_time">%1$s trascorso · circa %2$s rimanente</string>
     <string name="settings_scan_time_elapsed">%1$s trascorso</string>
+    <string name="tiles_scanning_pct">Ricerca %1$d %%</string>
+    <string name="tiles_scanning">Ricerca</string>
 </resources>

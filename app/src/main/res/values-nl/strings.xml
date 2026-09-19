@@ -292,4 +292,6 @@
     <string name="settings_scan_found">%1$d ensembles, %2$d zenders gevonden</string>
     <string name="settings_scan_time">%1$s verstreken · nog ongeveer %2$s</string>
     <string name="settings_scan_time_elapsed">%1$s verstreken</string>
+    <string name="tiles_scanning_pct">Zoeken %1$d %%</string>
+    <string name="tiles_scanning">Zoeken</string>
 </resources>

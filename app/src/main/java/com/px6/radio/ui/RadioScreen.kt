@@ -529,8 +529,9 @@ private fun StatusChip(demoMode: Boolean, scanning: Boolean, scanProgress: Int) 
     val border: Color
     when {
         scanning -> {
-            label = stringResource(R.string.radio_scanning, scanProgress); fg = appColors.accent
-            bg = appColors.accentSoft; border = appColors.accentSoftBorder
+            // Same violet as the tiles frontend's scan pill — one colour for "scanning" everywhere.
+            label = "DAB+ · " + stringResource(R.string.tiles_scanning_pct, scanProgress); fg = Color(0xFFA57CFF)
+            bg = Color(0x22A57CFF); border = Color(0x66A57CFF)
         }
         demoMode -> {
             label = "DEMO"; fg = appColors.fm

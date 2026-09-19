@@ -386,6 +386,19 @@ object TilesFrontend : RadioFrontend {
                     Spacer(Modifier.width(skin.pad(8)))
                     FollowingPills(state) { pillInfo = it }
                 }
+                // A scan gets its own pill in its own colour — it names the band being swept, which is
+                // not necessarily the one playing — and vanishes with the scan.
+                val scanText = when {
+                    state.dabScanning -> "DAB+ · " + stringResource(R.string.tiles_scanning_pct, state.scanProgress)
+                    state.fmSeeking -> bandName(if (state.selectedBand == Band.AM) Band.AM else Band.FM) + " · " + stringResource(R.string.tiles_scanning)
+                    else -> null
+                }
+                androidx.compose.animation.AnimatedVisibility(visible = scanText != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Spacer(Modifier.width(skin.pad(8)))
+                        Chip(scanText ?: "", PILL_VIOLET, null)
+                    }
+                }
             }
             Text(
                 state.clock, color = appColors.text,
@@ -538,6 +551,7 @@ object TilesFrontend : RadioFrontend {
     // reads as the same colour — green "live/OK", orange "problem/degraded", red "inoperable".
     private val PILL_GREEN = androidx.compose.ui.graphics.Color(0xFF25C26A)
     private val PILL_ORANGE = androidx.compose.ui.graphics.Color(0xFFE08A3C)
+    private val PILL_VIOLET = androidx.compose.ui.graphics.Color(0xFFA57CFF)
     private val PILL_RED = androidx.compose.ui.graphics.Color(0xFFE04C4C)
 
     private fun bandLabel(state: RadioUiState): String = buildString {

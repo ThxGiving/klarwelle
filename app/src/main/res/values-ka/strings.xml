@@ -291,4 +291,6 @@
     <string name="settings_scan_found">%1$d ანსამბლი, %2$d სადგური ნაპოვნია</string>
     <string name="settings_scan_time">%1$s გავიდა · დაახლ. %2$s დარჩა</string>
     <string name="settings_scan_time_elapsed">%1$s გავიდა</string>
+    <string name="tiles_scanning_pct">ძებნა %1$d %%</string>
+    <string name="tiles_scanning">ძებნა</string>
 </resources>

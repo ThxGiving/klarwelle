@@ -291,4 +291,6 @@
     <string name="settings_scan_found">%1$d zespołów, %2$d stacji znaleziono</string>
     <string name="settings_scan_time">%1$s minęło · około %2$s pozostało</string>
     <string name="settings_scan_time_elapsed">%1$s minęło</string>
+    <string name="tiles_scanning_pct">Szukanie %1$d %%</string>
+    <string name="tiles_scanning">Szukanie</string>
 </resources>
