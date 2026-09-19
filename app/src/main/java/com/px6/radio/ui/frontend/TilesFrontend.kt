@@ -177,7 +177,12 @@ object TilesFrontend : RadioFrontend {
         }
 
         Column(Modifier.fillMaxSize().background(appColors.bg)) {
-            StatusBar(state)
+            // Scan progress rides on the header's bottom edge — a screen bezel can hide the very
+            // top of the panel, a line inside the header it cannot.
+            Box(Modifier.fillMaxWidth()) {
+                StatusBar(state)
+                com.px6.radio.ui.ScanProgressLine(state.dabScanning, state.scanProgress, state.fmSeeking, Modifier.align(Alignment.BottomCenter))
+            }
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 when (page) {
                     Page.PRESETS -> PresetPage(

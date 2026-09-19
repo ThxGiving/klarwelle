@@ -140,7 +140,10 @@ fun SettingsScreen(
     androidx.activity.compose.BackHandler(onBack = up)
 
     Column(Modifier.fillMaxSize().background(appColors.bg)) {
-        TitleBar(title, up)
+        Box(Modifier.fillMaxWidth()) {
+            TitleBar(title, up)
+            ScanProgressLine(dabScanning, scanProgress, fmSeeking, Modifier.align(Alignment.BottomCenter))
+        }
         HairLine()
 
         val scroll = rememberScrollState()

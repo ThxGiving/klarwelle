@@ -166,12 +166,6 @@ fun RadioScreen(vm: RadioViewModel) {
     }
     }
         // ASA/EWS alert above EVERYTHING — both frontends AND the settings screen.
-        // Scan progress as a hairline at the top, over either screen — the settings can be left
-        // while the tuner keeps sweeping.
-        ScanProgressLine(
-            dabScanning = state.dabScanning, dabPercent = state.scanProgress, fmSeeking = state.fmSeeking,
-            modifier = Modifier.align(Alignment.TopCenter),
-        )
         state.ewsAlert?.let { com.px6.radio.ews.EwsAlertOverlay(it, onDismiss = vm::dismissEwsAlert) }
     }
 }
@@ -283,20 +277,23 @@ object SplitFrontend : RadioFrontend {
     @Composable
     override fun Content(state: RadioUiState, actions: RadioActions) {
         Column(Modifier.fillMaxSize().background(appColors.bg)) {
-            TopBar(
-                clock = state.clock,
-                outsideTemp = state.outsideTemp,
-                following = state.following,
-                fmAvailable = state.fmAvailable,
-                nowPlaying = state.nowPlaying,
-                demoMode = state.demoMode,
-                dabScanning = state.dabScanning,
-                scanProgress = state.scanProgress,
-                showSignal = state.settings.showSignalStrength && state.selectedBand == Band.DAB,
-                signalBars = state.signalBars,
-                asaStatus = state.asaStatus,
-                onOpenSettings = actions::openSettings,
-            )
+            Box(Modifier.fillMaxWidth()) {
+                TopBar(
+                    clock = state.clock,
+                    outsideTemp = state.outsideTemp,
+                    following = state.following,
+                    fmAvailable = state.fmAvailable,
+                    nowPlaying = state.nowPlaying,
+                    demoMode = state.demoMode,
+                    dabScanning = state.dabScanning,
+                    scanProgress = state.scanProgress,
+                    showSignal = state.settings.showSignalStrength && state.selectedBand == Band.DAB,
+                    signalBars = state.signalBars,
+                    asaStatus = state.asaStatus,
+                    onOpenSettings = actions::openSettings,
+                )
+                ScanProgressLine(state.dabScanning, state.scanProgress, state.fmSeeking, Modifier.align(Alignment.BottomCenter))
+            }
             if (state.backendErrors.isNotEmpty()) {
                 ErrorBanner(
                     state.backendErrors,
