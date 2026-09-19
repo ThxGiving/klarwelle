@@ -165,6 +165,17 @@ object TilesFrontend : RadioFrontend {
         var bandPicker by remember { mutableStateOf(false) }
         var viewPicker by remember { mutableStateOf(false) }
 
+        // "Back" = one level up: an open picker closes first, then an open panel (list, manual,
+        // streams) returns to the presets. Only with nothing left to close does the key reach the
+        // radio screen, which asks whether to quit.
+        androidx.activity.compose.BackHandler(enabled = bandPicker || viewPicker || page != Page.PRESETS) {
+            when {
+                bandPicker -> bandPicker = false
+                viewPicker -> viewPicker = false
+                else -> page = Page.PRESETS
+            }
+        }
+
         Column(Modifier.fillMaxSize().background(appColors.bg)) {
             StatusBar(state)
             Box(Modifier.fillMaxWidth().weight(1f)) {

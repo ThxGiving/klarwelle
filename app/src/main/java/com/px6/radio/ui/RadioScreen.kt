@@ -83,9 +83,9 @@ fun RadioScreen(vm: RadioViewModel) {
     val state by vm.state.collectAsStateWithLifecycle()
     val skins by vm.skins.collectAsStateWithLifecycle()
 
-    // Hardware "back": step out of a screen/modal instead of finishing the app to the home screen
-    // (the head unit's default). Only when there is something to dismiss — otherwise back leaves.
-    BackHandler(enabled = state.screen == Screen.SETTINGS) { vm.closeSettings() }
+    // Hardware "back" = one level up. Inside the settings the SettingsScreen handles it page by page;
+    // here: dismiss a modal, then let the frontend close an open panel, and only on the bare main
+    // screen ask whether to quit (a playing radio is never killed silently).
     BackHandler(enabled = state.screen != Screen.SETTINGS && state.dabOffer != null) { vm.declineDabOffer() }
     // On the main screen, back doesn't silently kill a playing radio — it asks first.
     BackHandler(enabled = state.screen != Screen.SETTINGS && state.dabOffer == null && !state.exitConfirm) {

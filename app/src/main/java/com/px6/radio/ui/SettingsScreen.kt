@@ -129,8 +129,14 @@ fun SettingsScreen(
         Page.LICENSE -> stringResource(R.string.settings_license)
     }
 
+    // "Back" means one level up — the title-bar arrow and the hardware key do the same thing:
+    // sub-page → parent page, root → leave the settings. Composed inside the screen, so it takes
+    // precedence over the radio screen's own back handling while the settings are open.
+    val up = { page = page.parent() ?: run { onBack(); Page.ROOT } }
+    androidx.activity.compose.BackHandler(onBack = up)
+
     Column(Modifier.fillMaxSize().background(appColors.bg)) {
-        TitleBar(title) { page = page.parent()?.also { } ?: run { onBack(); Page.ROOT } }
+        TitleBar(title, up)
         HairLine()
 
         val scroll = rememberScrollState()
