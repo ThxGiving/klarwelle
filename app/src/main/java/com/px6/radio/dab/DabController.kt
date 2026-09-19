@@ -519,11 +519,11 @@ class DabController(private val appContext: Context) :
      * disabled, pill lit, nothing happening. The user can start again; the tuner stays usable.
      */
     fun cancelScan(reason: String) {
-        omriStep("scan cancelled: $reason")
+        omriStep("scan cancelled: $reason")   // the why goes to the diag file, not the screen
         val tuner = dabTuners().firstOrNull()
         runCatching { tuner?.stopRadioServiceScan() }
         _state.update { it.copy(scanning = false) }
-        reportError("Suchlauf abgebrochen: $reason")
+        reportError("Suchlauf abgebrochen")
     }
 
     private var scanWatchdog: kotlinx.coroutines.Job? = null

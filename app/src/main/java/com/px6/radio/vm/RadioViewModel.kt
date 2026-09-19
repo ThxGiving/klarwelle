@@ -1823,7 +1823,10 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                     if (now - startedAt > AUTOSCAN_TIMEOUT_MS) break
                 }
                 tuner.cancelAutoScan()
-                if (stalled) addError("FM-Suchlauf abgebrochen: keine Rückmeldung vom Tuner seit ${SCAN_STALL_MS / 1000} s")
+                if (stalled) {
+                    Diag.write(appContext, DiagFile.FM, "${currentClock()} Suchlauf abgebrochen: keine Rückmeldung seit ${SCAN_STALL_MS / 1000} s\n", append = true)
+                    addError("FM-Suchlauf abgebrochen")
+                }
                 persistNow()
             } catch (t: Throwable) {
                 if (t is kotlinx.coroutines.CancellationException) throw t   // a real cancel (manual tune) — not an error
