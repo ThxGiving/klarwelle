@@ -38,13 +38,15 @@ fun ScanProgressLine(dabScanning: Boolean, dabPercent: Int, fmSeeking: Boolean, 
         val accent = appColors.accent
         val track = accent.copy(alpha = 0.18f)
         // Eased so each 2.4 % step (one of 41 channels) glides instead of jumping.
-        val fill by animateFloatAsState(if (dabScanning) dabPercent / 100f else 0f, tween(500), label = "scanFill")
+        // FM/AM: the sweep's band position arrives as a percentage too, once the tuner reports it.
+        val determinate = dabScanning || (fmSeeking && dabPercent > 0)
+        val fill by animateFloatAsState(if (determinate) dabPercent / 100f else 0f, tween(500), label = "scanFill")
         val sweep by rememberInfiniteTransition(label = "sweep").animateFloat(
             0f, 1f, infiniteRepeatable(tween(1400, easing = LinearEasing), RepeatMode.Restart), label = "sweepPos",
         )
         Canvas(Modifier.fillMaxWidth().height(3.dp)) {
             drawRect(track)
-            if (dabScanning) {
+            if (determinate) {
                 drawRect(accent, size = Size(size.width * fill, size.height))
             } else {
                 // A soft light, a quarter of the width, travelling left to right.

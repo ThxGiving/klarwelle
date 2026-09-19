@@ -296,4 +296,5 @@
     <string name="settings_scan_time_elapsed">%1$s vergangen</string>
     <string name="tiles_scanning_pct">Suchlauf %1$d %%</string>
     <string name="tiles_scanning">Suchlauf</string>
+    <string name="settings_scan_found_stations">%1$d Sender gefunden</string>
 </resources>

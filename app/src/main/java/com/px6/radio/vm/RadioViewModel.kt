@@ -746,6 +746,16 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         // manual scale, so a manually dialled frequency isn't overwritten by a stale repeat.
         val freqChanged = f.freqKhz > 0 && f.freqKhz != lastFmFreqKhz
         if (f.freqKhz > 0) lastFmFreqKhz = f.freqKhz
+        // The MCU sweep reports no percentage, but it walks the band upwards and reports where it
+        // is — so the position in the band IS the progress. Never goes backwards within a sweep.
+        if (_state.value.fmSeeking && f.freqKhz > 0) {
+            val s = _state.value
+            val band = if (s.selectedBand == Band.AM) Band.AM else Band.FM
+            val p = TuningProfile.forBand(band, s.settings.fmRegion)
+            val span = (p.maxKhz - p.minKhz).coerceAtLeast(1)
+            val pct = ((f.freqKhz - p.minKhz) * 100 / span).coerceIn(0, 99)
+            if (pct > s.scanProgress) _state.update { it.copy(scanProgress = pct) }
+        }
         _state.update { s0 ->
         // FM has no service list to fetch — there are only frequencies. Whatever the tuner lands
         // on gets collected here, so the list fills itself while seeking or scanning the band.
@@ -1826,6 +1836,12 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             // Name it straight from the remembered frequency→name store (HCT4Radio's getFrequencyPsn),
             // so a rescan doesn't lose names learned earlier — the list comes back named.
             else { scanHits++; s.copy(stations = s.stations + buildAnalogStation(band, khz, rememberedFmName(khz), null)) }
+        }
+        val s = _state.value
+        if (s.fmSeeking) {
+            val p = TuningProfile.forBand(band, s.settings.fmRegion)
+            val pct = ((khz - p.minKhz) * 100 / (p.maxKhz - p.minKhz).coerceAtLeast(1)).coerceIn(0, 99)
+            if (pct > s.scanProgress) _state.update { it.copy(scanProgress = pct) }
         }
     }
 

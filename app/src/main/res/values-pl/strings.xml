@@ -293,4 +293,5 @@
     <string name="settings_scan_time_elapsed">%1$s minęło</string>
     <string name="tiles_scanning_pct">Szukanie %1$d %%</string>
     <string name="tiles_scanning">Szukanie</string>
+    <string name="settings_scan_found_stations">%1$d stacji znaleziono</string>
 </resources>

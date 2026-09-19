@@ -293,4 +293,5 @@
     <string name="settings_scan_time_elapsed">%1$s გავიდა</string>
     <string name="tiles_scanning_pct">ძებნა %1$d %%</string>
     <string name="tiles_scanning">ძებნა</string>
+    <string name="settings_scan_found_stations">%1$d სადგური ნაპოვნია</string>
 </resources>

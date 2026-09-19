@@ -175,8 +175,8 @@ fun SettingsScreen(
                         onScanDab = onScanDab,
                         onChange = onChange,
                     )
-                    Page.BAND_FM -> BandFmPage(settings, fmSeeking, onScanFm, onChange)
-                    Page.BAND_AM -> BandAmPage(settings, fmSeeking, onScanFm, onChange)
+                    Page.BAND_FM -> BandFmPage(settings, fmSeeking, scanProgress, stationCounts[Band.FM] ?: 0, onScanFm, onChange)
+                    Page.BAND_AM -> BandAmPage(settings, fmSeeking, scanProgress, stationCounts[Band.AM] ?: 0, onScanFm, onChange)
                     Page.PLAYBACK -> PlaybackPage(
                         settings = settings,
                         presets = presets,
@@ -478,16 +478,19 @@ private fun BandDabPage(
 private fun BandFmPage(
     settings: Settings,
     fmSeeking: Boolean,
+    scanProgress: Int,
+    found: Int,
     onScanFm: () -> Unit,
     onChange: ((Settings) -> Settings) -> Unit,
 ) {
     ActionRow(
         label = stringResource(R.string.settings_rescan_list),
-        hint = if (fmSeeking) stringResource(R.string.settings_fm_scanning_hint)
+        hint = if (fmSeeking) stringResource(R.string.settings_fm_scanning_hint) + " · " + stringResource(R.string.settings_scan_found_stations, found)
             else stringResource(R.string.settings_fm_scan_hint),
-        button = if (fmSeeking) stringResource(R.string.settings_scanning_button)
+        button = if (fmSeeking) (if (scanProgress > 0) "$scanProgress %" else stringResource(R.string.settings_scanning_button))
             else stringResource(R.string.settings_scan_button),
         enabled = !fmSeeking,
+        progress = if (fmSeeking) scanProgress / 100f else null,
         onClick = onScanFm,
     )
     RegionRow(settings, onChange)
@@ -520,16 +523,19 @@ private fun RegionRow(settings: Settings, onChange: ((Settings) -> Settings) -> 
 private fun BandAmPage(
     settings: Settings,
     fmSeeking: Boolean,
+    scanProgress: Int,
+    found: Int,
     onScanFm: () -> Unit,
     onChange: ((Settings) -> Settings) -> Unit,
 ) {
     ActionRow(
         label = stringResource(R.string.settings_rescan_list),
-        hint = if (fmSeeking) stringResource(R.string.settings_am_scanning_hint)
+        hint = if (fmSeeking) stringResource(R.string.settings_am_scanning_hint) + " · " + stringResource(R.string.settings_scan_found_stations, found)
             else stringResource(R.string.settings_am_scan_hint),
-        button = if (fmSeeking) stringResource(R.string.settings_scanning_button)
+        button = if (fmSeeking) (if (scanProgress > 0) "$scanProgress %" else stringResource(R.string.settings_scanning_button))
             else stringResource(R.string.settings_scan_button),
         enabled = !fmSeeking,
+        progress = if (fmSeeking) scanProgress / 100f else null,
         onClick = onScanFm,
     )
     RegionRow(settings, onChange)

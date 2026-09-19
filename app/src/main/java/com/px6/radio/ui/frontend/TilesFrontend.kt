@@ -390,7 +390,8 @@ object TilesFrontend : RadioFrontend {
                 // not necessarily the one playing — and vanishes with the scan.
                 val scanText = when {
                     state.dabScanning -> "DAB+ · " + stringResource(R.string.tiles_scanning_pct, state.scanProgress)
-                    state.fmSeeking -> bandName(if (state.selectedBand == Band.AM) Band.AM else Band.FM) + " · " + stringResource(R.string.tiles_scanning)
+                    state.fmSeeking -> bandName(if (state.selectedBand == Band.AM) Band.AM else Band.FM) + " · " +
+                        (if (state.scanProgress > 0) stringResource(R.string.tiles_scanning_pct, state.scanProgress) else stringResource(R.string.tiles_scanning))
                     else -> null
                 }
                 androidx.compose.animation.AnimatedVisibility(visible = scanText != null) {
