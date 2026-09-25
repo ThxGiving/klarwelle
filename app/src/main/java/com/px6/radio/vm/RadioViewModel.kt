@@ -287,10 +287,8 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
      * probe; the probe then read a signal for the wrong ensemble, decided "too weak", and never
      * tried again. This flag makes the probe the short-lived exclusive user.
      */
-    @Volatile private var dabProbeInFlight = false
     /** When each FM station was last probed, so a "too weak" verdict is not permanent. */
     private val fmProbedAtMs = java.util.Collections.synchronizedMap(HashMap<String, Long>())
-    @Volatile private var dabTunerHome: String? = null // DAB service to retune to after a probe
 
     /** Only cue a return to DAB after we actually left it, and a scan end after one ran. */
     private var followingSeen = false
@@ -1555,70 +1553,32 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val fmId = np.id
         runCatching {
             Diag.write(appContext, DiagFile.LINKS,
-                "${currentClock()} FM->DAB: ${np.name} hat ${candidate.name} — Probe in ${FM_DAB_DWELL_MS / 1000} s\n",
+                "${currentClock()} FM->DAB: ${np.name} hat ${candidate.name} — Wechsel in ${FM_DAB_DWELL_MS / 1000} s\n",
                 append = true)
         }
         dabOfferJob = viewModelScope.launch {
-            // Dwell first: only disturb the DAB tuner once you've stayed on this FM station a moment,
-            // so stepping through FM never throws the tuner around.
+            // Dwell first, so stepping through FM stations doesn't throw the audio around.
             delay(FM_DAB_DWELL_MS)
             val s1 = _state.value
             if (s1.selectedBand != Band.FM || s1.nowPlaying?.station?.id != fmId ||
-                s1.fmSeeking || scanDone != null || s1.dabScanning
-            ) return@launch                                      // moved on — leave the tuner alone
-            // Remember where the DAB tuner is now, so we can put it back after the probe (the probe
-            // retunes it). Falls back to per-band memory; may be null on a fresh FM-first session.
-            dabTunerHome = dab?.state?.value?.nowPlayingId ?: s1.lastStationPerBand[Band.DAB]
-            // Reception is a property of the ENSEMBLE, not of the single service in it: same
-            // multiplex, same frequency. So when the tuner already sits on the candidate's ensemble
-            // — which is often the case, because the ASA monitor parks it on one — the reading is
-            // already there and no retune is needed at all. That is the cheapest possible answer:
-            // no tuner disturbance, no gap in warning coverage, no settle time.
-            val onCandidateEnsemble = dab?.state?.value?.currentTunerEnsembleId ==
-                com.px6.radio.ews.EwsMonitorPolicy.ensembleOf(candidate)
-            val probeStartedAt = android.os.SystemClock.elapsedRealtime()
-            val bars = if (onCandidateEnsemble) {
-                dab?.state?.value?.signalBars ?: 0
-            } else {
-                dabProbeInFlight = true
-                try {
-                    withContext(Dispatchers.IO) {
-                        // Stop measuring at the decision threshold — see DabController.probeSignal.
-                        runCatching { dab?.probeSignal(candidate.id, FM_TO_DAB_MIN_BARS) }.getOrNull()
-                    } ?: 0
-                } finally {
-                    dabProbeInFlight = false
-                }
-            }
-            val awayMs = android.os.SystemClock.elapsedRealtime() - probeStartedAt
-            val s2 = _state.value
-            val stillHere = s2.selectedBand == Band.FM && s2.nowPlaying?.station?.id == fmId
-            val take = bars >= FM_TO_DAB_MIN_BARS && stillHere && fmId !in dabOfferSuppressed
-            // Record the outcome. This path was entirely silent, so "it never switched to DAB+"
-            // could not be told apart from "it looked and DAB was too weak" — and the probe runs
-            // only once per station per session, so there was no second chance to observe either.
+                s1.fmSeeking || scanDone != null || s1.dabScanning || s1.ewsAlert != null
+            ) return@launch                                      // moved on — leave it alone
+            // No signal probe: measuring meant retuning the DAB tuner away from the ensemble ASA is
+            // monitored on, and a reading taken at the kerb says little about the next kilometre
+            // anyway. We simply take the better carrier — and if DAB turns out to be too weak, the
+            // existing service following hands the audio on to FM (or the Internet simulcast, when
+            // that tier is enabled) within seconds. Whoever dislikes the automatic move switches
+            // "DAB+ bevorzugen" off and gets an offer instead, or turns following off entirely.
+            fmProbedAtMs[fmId] = android.os.SystemClock.elapsedRealtime()
+            probedFmId = null
             runCatching {
                 Diag.write(appContext, DiagFile.LINKS, buildString {
-                    append(currentClock()).append(" FM->DAB Probe: ").append(np.name)
+                    append(currentClock()).append(" FM->DAB: ").append(np.name)
                     append(" -> ").append(candidate.name)
-                    append("  Balken ").append(bars).append('/').append(FM_TO_DAB_MIN_BARS)
-                    if (onCandidateEnsemble) append(" (ohne Umstimmen abgelesen)")
-                    else append(" (Tuner ").append(awayMs).append(" ms weg)")
-                    append(if (take) "  -> " + (if (s2.settings.preferDab) "umgeschaltet" else "angeboten")
-                        else if (!stillHere) "  -> verworfen (Sender gewechselt)"
-                        else if (fmId in dabOfferSuppressed) "  -> verworfen (abgelehnt)"
-                        else "  -> zu schwach, bleibt auf FM")
-                    append('\n')
+                    append(if (s1.settings.preferDab) "  -> umgeschaltet" else "  -> angeboten").append('\n')
                 }, append = true)
             }
-            fmProbedAtMs[fmId] = android.os.SystemClock.elapsedRealtime()
-            probedFmId = null            // a later attempt may run once the retry window has passed
-            if (take) {
-                if (s2.settings.preferDab) play(candidate)       // auto-switch (tuner already on it)
-                else _state.update { it.copy(dabOffer = candidate) }
-            } else if (!onCandidateEnsemble) {
-                restoreDabTuner()                                // weak / moved on → tuner back
-            }
+            if (s1.settings.preferDab) play(candidate) else _state.update { it.copy(dabOffer = candidate) }
         }
     }
 
@@ -1643,7 +1603,6 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             band = s.selectedBand,
             following = s.following,
             ewsEnsembleIds = s.ewsEnsembleIds,
-            // The tuner is wherever the probe left it, which is by definition not the park target.
             currentDabEnsembleId = dab?.state?.value?.currentTunerEnsembleId,
             allowDiscovery = false,
         )
@@ -1651,25 +1610,23 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             parkDabForEwsMonitoring()
             return
         }
-        (dabTunerHome ?: s.lastStationPerBand[Band.DAB])
+        s.lastStationPerBand[Band.DAB]
             ?.let { id -> viewModelScope.launch(Dispatchers.IO) { runCatching { dab?.retuneSilently(id) } } }
     }
 
     override fun acceptDabOffer() {
         val cand = _state.value.dabOffer ?: return
         _state.update { it.copy(dabOffer = null) }
-        play(cand)                                               // tuner already tuned → instant switch
+        play(cand)
     }
 
     override fun declineDabOffer() {
         _state.update { it.copy(dabOffer = null) }
-        restoreDabTuner()
     }
 
     override fun ignoreDabOffer() {
         _state.value.nowPlaying?.station?.id?.let { dabOfferSuppressed.add(it) }
         _state.update { it.copy(dabOffer = null) }
-        restoreDabTuner()
     }
 
     // ---- exit, transport, hardware keys ----
@@ -2248,7 +2205,6 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val d = dab ?: return
         // A probe owns the tuner for its few seconds — parking now would measure the wrong ensemble.
         // The monitor re-parks on its next tick, so nothing is lost by waiting.
-        if (dabProbeInFlight) return
         val policy = com.px6.radio.ews.EwsMonitorPolicy
         // Ask with the AUTHORITATIVE ensemble the tuner physically sits on, not the logical
         // now-playing: a silent park deliberately leaves nowPlayingId alone, so using it here would
@@ -2774,14 +2730,13 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
          *  appear in the list. Generous — a DAB scan can take a while — but finite. */
         const val AUTOPLAY_GRACE_MS = 90_000L
 
-        const val FM_DAB_DWELL_MS = 30_000L
+        const val FM_DAB_DWELL_MS = 10_000L
 
         /** How long before an FM station is probed for a DAB counterpart again. The car moves: a
          *  candidate that was out of range at the kerb is often solid a few minutes later, so a
          *  single "too weak" must not disable the offer for the rest of the session. */
         const val FM_DAB_RETRY_MS = 5 * 60_000L
         /** Signal bars (0–4) a linked DAB+ must reach before we offer/switch FM → DAB. */
-        const val FM_TO_DAB_MIN_BARS = 3
 
         /** Never file more than this many FM/AM stations in a single scan. */
         const val MAX_SCAN_STATIONS = 60

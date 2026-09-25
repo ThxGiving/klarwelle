@@ -327,8 +327,7 @@ class DabController(private val appContext: Context) :
      * Silently measure a service's reception without disturbing playback — used while FM is on (the
      * DAB tuner is free) to check whether a linked DAB+ station is strongly receivable before
      * offering/switching to it. Keeps the DAB output muted (FM owns the amp) and does NOT touch
-     * [DabState.nowPlayingId] or subscribe metadata, so our logical "now playing" is unchanged. The
-     * caller restores the tuner to the remembered DAB service afterwards (or keeps it, on accept).
+     * [DabState.nowPlayingId] or subscribe metadata, so our logical "now playing" is unchanged.
      */
     /**
      * The station id (eid.sid) of the service in the CURRENTLY tuned ensemble whose audio component
@@ -352,34 +351,6 @@ class DabController(private val appContext: Context) :
             (curEid == null || id.substringBefore('.') == curEid) &&
                 runCatching { svc.serviceComponents.any { it.subchannelId == subChId } }.getOrDefault(false)
         }?.key
-    }
-
-    suspend fun probeSignal(serviceId: String, goodEnough: Int = PROBE_GOOD_BARS): Int {
-        val svc = services[serviceId] ?: return 0
-        runCatching { setVolume(0f) }
-        currentService = svc
-        runCatching { radio.startRadioService(svc) }
-        // Reset first — signalBars is still the (strong) reading of the previously-tuned DAB station;
-        // without this we'd read a stale value and offer/switch to a weak candidate. Now we only see
-        // a value if a FRESH reception stat for the candidate arrives.
-        _state.update { it.copy(signalBars = 0) }
-        // WAIT for real reports rather than a fixed settle time: moving the tuner to another ensemble
-        // takes a lock plus the first statistics frame, which is regularly more than a second. The old
-        // blind 1.5 s read therefore returned 0 — "too weak" — for a perfectly good ensemble, and the
-        // FM->DAB offer never appeared. Collect what arrives within the window and take the best; a
-        // first strong report ends the wait early.
-        var best = 0
-        runCatching {
-            withTimeoutOrNull(PROBE_WINDOW_MS) {
-                signalReports.collect { bars ->
-                    if (bars > best) best = bars
-                    // As soon as the answer can no longer change the decision, stop: every further
-                    // millisecond is a millisecond the tuner is away from the EWS ensemble.
-                    if (best >= goodEnough) throw kotlinx.coroutines.CancellationException("good enough")
-                }
-            }
-        }
-        return maxOf(best, _state.value.signalBars)
     }
 
     /** Re-tune the native DAB tuner to a service without changing our logical now-playing/UI. */
@@ -678,17 +649,6 @@ class DabController(private val appContext: Context) :
 
     private companion object {
         const val TAG = "DabController"
-        const val PROBE_SETTLE_MS = 1500L   // let reception settle after a silent probe tune
-        /**
-          * How long a probe waits for reception statistics of the newly tuned ensemble. This is time
-          * the tuner spends away from the ensemble ASA is monitored on, so it is deliberately short —
-          * and it ends the moment the reading is decisive. An alert is signalled for far longer than
-          * this (pre-trigger ~60 s ahead, then a trigger burst), so a window of this size cannot
-          * swallow one; a probe is skipped outright while an alert is on screen.
-          */
-        const val PROBE_WINDOW_MS = 5_000L
-        /** A reading this good ends the probe early — no need to keep the tuner away any longer. */
-        const val PROBE_GOOD_BARS = 4
         /** A healthy scan steps every ~2 s; this much silence means the tuner is stuck. */
         const val SCAN_STALL_MS = 25_000L
 
