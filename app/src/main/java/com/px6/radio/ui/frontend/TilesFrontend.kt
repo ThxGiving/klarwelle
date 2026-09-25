@@ -599,9 +599,18 @@ object TilesFrontend : RadioFrontend {
         LaunchedEffect(curIdx) {
             if (curIdx >= 0 && pager.currentPage != curIdx && !pager.isScrollInProgress) pager.animateScrollToPage(curIdx)
         }
+        // Only a real drag may tune. Without this the pager's very first settled value (page 0) was
+        // taken for a gesture: coming back from the station list with a station that is not in the
+        // stepping list (a stream, or any station while "stored only" is set), the page-0 emission
+        // tuned the first favourite — the chosen station was dropped on the way out of the list.
+        var dragged by remember { mutableStateOf(false) }
+        LaunchedEffect(pager) {
+            snapshotFlow { pager.isScrollInProgress }.collect { if (it) dragged = true }
+        }
         // The finger let go and the pager settled on a neighbour: that is the tune.
         LaunchedEffect(pager) {
             snapshotFlow { pager.settledPage }.collect { page ->
+                if (!dragged) return@collect
                 val st = latestList.value.getOrNull(page) ?: return@collect
                 if (st.id != latestCur.value) actions.selectStation(st)
             }

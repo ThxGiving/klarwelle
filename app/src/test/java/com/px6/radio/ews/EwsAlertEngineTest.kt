@@ -190,6 +190,21 @@ class EwsAlertEngineTest {
     }
 
     @Test
+    fun `test alerts also monitor the broadcasters' test area`() = runTest {
+        val host = FakeHost()
+        // The area of the official test alert, and a receiver sitting somewhere else entirely.
+        val testArea = arrayOf("1:89409")
+        host.settings = host.settings.copy(asaTestAlerts = false, asaLocationCodes = listOf("125272425484"))
+        val e = engine(host)
+        e.onAlert(alert(locations = testArea, stage = EwsMatcher.STAGE_TEST, test = true))
+        assertNull("tests off: not presented", host.alert)
+
+        host.settings = host.settings.copy(asaTestAlerts = true)
+        e.onAlert(alert(locations = testArea, stage = EwsMatcher.STAGE_TEST, test = true, incident = 2))
+        assertNotNull("tests on: the test area is monitored too", host.alert)
+    }
+
+    @Test
     fun `asa switched off drops everything and says so once`() = runTest {
         val host = FakeHost(); host.settings = host.settings.copy(asaEnabled = false)
         val e = engine(host)

@@ -39,8 +39,10 @@ enum class DiagFile(val fileName: String) {
     RADIODNS("klarwelle-radiodns.txt"),
     /** DAB service links as received (FIG 0/6, 0/21). */
     DABLINKS("klarwelle-dablinks.txt"),
-    /** FM -> DAB probe decisions. */
+    /** FM -> DAB probe decisions (append-only trail). */
     LINKS("klarwelle-links.txt"),
+    /** The current DAB<->FM assignment table (overwritten on every change). */
+    LINKMAP("klarwelle-linkmap.txt"),
     /** Service following decisions. */
     FOLLOWING("klarwelle-following.txt"),
     /** ASA / emergency-warning lifecycle. */

@@ -223,6 +223,11 @@ private fun content(topic: PillTopic, s: RadioUiState): PanelContent {
                         s.asaGpsCode?.takeIf { s.settings.asaFollowGps }
                             ?.let { "GPS " + com.px6.radio.ews.EwsMatcher.grouped(it) },
                     ).plus(s.settings.asaLocationCodes.map { com.px6.radio.ews.EwsMatcher.grouped(it) })
+                        .plus(
+                            if (s.settings.asaTestAlerts)
+                                listOf("TEST " + com.px6.radio.ews.EwsMatcher.grouped(com.px6.radio.ews.EwsMatcher.TEST_LOCATION_CODE))
+                            else emptyList()
+                        )
                         .takeIf { it.isNotEmpty() }?.joinToString(", ")
                         ?: stringResource(R.string.pill_asa_no_location)),
                 stringResource(R.string.pill_asa_tests) to stringResource(

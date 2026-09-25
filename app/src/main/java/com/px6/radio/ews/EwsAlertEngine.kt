@@ -127,7 +127,10 @@ class EwsAlertEngine(
         // Any of them matching is a match — a wider receiver area can add an alert, never
         // hide one, which is the safe direction for §7.5.4.
         val receiverCodes = EwsMatcher.parseReceiverCodes(s.asaLocationCodes) +
-            listOfNotNull(host.gpsCode.takeIf { s.asaFollowGps })
+            listOfNotNull(host.gpsCode.takeIf { s.asaFollowGps }) +
+            // Test alerts carry the broadcasters' test area, not the listener's — monitor it too,
+            // otherwise switching tests on shows nothing at all (§7.5.4 is about the area, not the stage).
+            EwsMatcher.parseReceiverCodes(listOfNotNull(EwsMatcher.TEST_LOCATION_CODE.takeIf { s.asaTestAlerts }))
         val play = EwsMatcher.shouldPlay(alert.stage, s.asaTestAlerts, alert.locationCodes.toList(), receiverCodes)
         val key = keyOf(alert)
         if (!play) {

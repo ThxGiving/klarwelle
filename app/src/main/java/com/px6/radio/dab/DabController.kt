@@ -4,6 +4,7 @@ import com.px6.radio.diag.Diag
 import com.px6.radio.diag.DiagFile
 import android.content.Context
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import android.util.Log
 import com.px6.radio.audio.DabAudioSink
@@ -360,10 +361,23 @@ class DabController(private val appContext: Context) :
         runCatching { radio.startRadioService(svc) }
         // Reset first — signalBars is still the (strong) reading of the previously-tuned DAB station;
         // without this we'd read a stale value and offer/switch to a weak candidate. Now we only see
-        // a value if a FRESH reception stat for the candidate arrives within the settle window.
+        // a value if a FRESH reception stat for the candidate arrives.
         _state.update { it.copy(signalBars = 0) }
-        delay(PROBE_SETTLE_MS)
-        return _state.value.signalBars
+        // WAIT for real reports rather than a fixed settle time: moving the tuner to another ensemble
+        // takes a lock plus the first statistics frame, which is regularly more than a second. The old
+        // blind 1.5 s read therefore returned 0 — "too weak" — for a perfectly good ensemble, and the
+        // FM->DAB offer never appeared. Collect what arrives within the window and take the best; a
+        // first strong report ends the wait early.
+        var best = 0
+        runCatching {
+            withTimeoutOrNull(PROBE_WINDOW_MS) {
+                signalReports.collect { bars ->
+                    if (bars > best) best = bars
+                    if (best >= PROBE_GOOD_BARS) throw kotlinx.coroutines.CancellationException("good enough")
+                }
+            }
+        }
+        return maxOf(best, _state.value.signalBars)
     }
 
     /** Re-tune the native DAB tuner to a service without changing our logical now-playing/UI. */
@@ -663,6 +677,10 @@ class DabController(private val appContext: Context) :
     private companion object {
         const val TAG = "DabController"
         const val PROBE_SETTLE_MS = 1500L   // let reception settle after a silent probe tune
+        /** How long a probe waits for reception statistics of the newly tuned ensemble. */
+        const val PROBE_WINDOW_MS = 6_000L
+        /** A reading this good ends the probe early — no need to keep the tuner away any longer. */
+        const val PROBE_GOOD_BARS = 4
         /** A healthy scan steps every ~2 s; this much silence means the tuner is stuck. */
         const val SCAN_STALL_MS = 25_000L
 

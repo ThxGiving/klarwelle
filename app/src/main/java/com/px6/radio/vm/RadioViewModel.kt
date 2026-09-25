@@ -1550,6 +1550,11 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         if (dabOfferJob?.isActive == true) return
         probedFmId = np.id
         val fmId = np.id
+        runCatching {
+            Diag.write(appContext, DiagFile.LINKS,
+                "${currentClock()} FM->DAB: ${np.name} hat ${candidate.name} — Probe in ${FM_DAB_DWELL_MS / 1000} s\n",
+                append = true)
+        }
         dabOfferJob = viewModelScope.launch {
             // Dwell first: only disturb the DAB tuner once you've stayed on this FM station a moment,
             // so stepping through FM never throws the tuner around.
@@ -2620,7 +2625,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val dab = stations.filter { it.band == Band.DAB }
         val linkedCount = dab.count { it.linkedFmFrequencyKhz != null || it.linkedFmPi != null }
         runCatching {
-            Diag.write(appContext, DiagFile.LINKS, buildString {
+            Diag.write(appContext, DiagFile.LINKMAP, buildString {
                 append("DAB: ").append(dab.size).append(" · verknüpft: ").append(linkedCount).append('\n')
                 append("FM-PI-Karte (").append(fm.count { it.piCode != null }).append(" mit PI):\n")
                 fm.forEach { s ->

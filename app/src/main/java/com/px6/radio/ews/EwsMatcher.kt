@@ -13,6 +13,15 @@ package com.px6.radio.ews
  */
 object EwsMatcher {
 
+    /**
+     * The broadcasters' public ASA test location code (presentation form, annex A.3) — Z1:894095.
+     * Test alerts are transmitted for this area, never for where the listener happens to be, so a
+     * receiver that only knows its own position can never match one. With "Testmeldungen" switched
+     * on this code is therefore monitored alongside the user's own; it is a published broadcast
+     * area, not anybody's home.
+     */
+    const val TEST_LOCATION_CODE = "125335133668"
+
     // Stage values mirror DabEwsAlert / the native Stage enum. -1 = no Status field.
     const val STAGE_NONE = -1
     const val STAGE_TEST = 7
