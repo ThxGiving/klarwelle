@@ -198,9 +198,9 @@ object TilesFrontend : RadioFrontend {
                         actions = actions,
                         pendingStore = pendingStore,
                         onPending = { pendingStore = it },
-                        onClose = { page = Page.PRESETS },
+                        onClose = { actions.tick(); page = Page.PRESETS },
                     )
-                    Page.MANUAL -> ManualPage(state, actions) { page = Page.PRESETS }
+                    Page.MANUAL -> ManualPage(state, actions) { actions.tick(); page = Page.PRESETS }
                 }
             }
             FunctionBar(
@@ -221,7 +221,7 @@ object TilesFrontend : RadioFrontend {
                 options = modes.map { ctx.getString(viewModeNameRes(it)) },
                 selectedIndex = modes.indexOf(state.viewMode).coerceAtLeast(0),
                 onPick = { i -> actions.setViewMode(modes[i]); viewPicker = false },
-                onDismiss = { viewPicker = false },
+                onDismiss = { actions.tick(); viewPicker = false },
             )
         }
 
@@ -232,7 +232,7 @@ object TilesFrontend : RadioFrontend {
                 options = bands.map { bandName(it) },
                 selectedIndex = bands.indexOf(state.selectedBand).coerceAtLeast(0),
                 onPick = { i -> actions.selectBand(bands[i]); bandPicker = false },
-                onDismiss = { bandPicker = false },
+                onDismiss = { actions.tick(); bandPicker = false },
             )
         }
     }
