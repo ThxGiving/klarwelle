@@ -1533,6 +1533,9 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             if (android.os.SystemClock.elapsedRealtime() - last < FM_DAB_RETRY_MS) return
         }
         if (s.fmSeeking || scanDone != null || s.dabScanning) return  // never probe while seeking/scanning
+        // An alert is being presented (or its audio is ours): the tuner stays where it is. A
+        // convenience feature never takes the tuner away from a running emergency warning.
+        if (s.ewsAlert != null) return
         val candidate = RadioLogic.findDabForFm(s.stations, khz, np.piCode) ?: run {
             // No DAB counterpart known for this FM station. Worth recording once: it is the
             // difference between "no DAB version exists" and "the link derivation failed".
@@ -1573,18 +1576,21 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
             // no tuner disturbance, no gap in warning coverage, no settle time.
             val onCandidateEnsemble = dab?.state?.value?.currentTunerEnsembleId ==
                 com.px6.radio.ews.EwsMonitorPolicy.ensembleOf(candidate)
+            val probeStartedAt = android.os.SystemClock.elapsedRealtime()
             val bars = if (onCandidateEnsemble) {
                 dab?.state?.value?.signalBars ?: 0
             } else {
                 dabProbeInFlight = true
                 try {
                     withContext(Dispatchers.IO) {
-                        runCatching { dab?.probeSignal(candidate.id) }.getOrNull()
+                        // Stop measuring at the decision threshold — see DabController.probeSignal.
+                        runCatching { dab?.probeSignal(candidate.id, FM_TO_DAB_MIN_BARS) }.getOrNull()
                     } ?: 0
                 } finally {
                     dabProbeInFlight = false
                 }
             }
+            val awayMs = android.os.SystemClock.elapsedRealtime() - probeStartedAt
             val s2 = _state.value
             val stillHere = s2.selectedBand == Band.FM && s2.nowPlaying?.station?.id == fmId
             val take = bars >= FM_TO_DAB_MIN_BARS && stillHere && fmId !in dabOfferSuppressed
@@ -1597,6 +1603,7 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                     append(" -> ").append(candidate.name)
                     append("  Balken ").append(bars).append('/').append(FM_TO_DAB_MIN_BARS)
                     if (onCandidateEnsemble) append(" (ohne Umstimmen abgelesen)")
+                    else append(" (Tuner ").append(awayMs).append(" ms weg)")
                     append(if (take) "  -> " + (if (s2.settings.preferDab) "umgeschaltet" else "angeboten")
                         else if (!stillHere) "  -> verworfen (Sender gewechselt)"
                         else if (fmId in dabOfferSuppressed) "  -> verworfen (abgelehnt)"
