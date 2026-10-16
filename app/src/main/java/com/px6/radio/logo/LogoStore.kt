@@ -102,6 +102,10 @@ class LogoStore(context: Context) {
      *  stations (e.g. don't re-download a RadioDNS logo that's already cached). */
     fun sourceRank(key: String): Int = synchronized(cacheLock) { index[key] ?: 0 }
 
+    /** Grade of the stored picture, 0 for a logo stored before grading existed — that one is worth
+     *  looking for again, since the old search took the first picture it could decode. */
+    fun grade(key: String): Int = synchronized(cacheLock) { grades[key] ?: 0 }
+
     /**
      * Stable per-station key. DAB and FM are kept apart because the same brand can differ
      * between the two (regional FM splits), and the name is normalised so "WDR 2 Rheinland",

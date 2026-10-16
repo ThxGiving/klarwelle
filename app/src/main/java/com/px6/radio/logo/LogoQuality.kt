@@ -78,7 +78,7 @@ object LogoQuality {
         val good: Boolean,
         /** Roughly a square, as a logo tile wants it (0.8–1.25). */
         val squareish: Boolean,
-        /** 0–270, higher is better. Only comparable between candidates for the same station. */
+        /** 0–290, higher is better. Only comparable between candidates for the same station. */
         val score: Int,
         val width: Int = 0,
         val height: Int = 0,
@@ -114,8 +114,8 @@ object LogoQuality {
         val score = (minOf(shortSide, 512) * 80 / 512) +
             (minOf(sharp, 120) * 150 / 120) +
             when {
-                squareish -> 40
-                ratio in 0.5..2.0 -> 20
+                squareish -> 60
+                ratio in 0.5..2.0 -> 10
                 else -> 0
             }
         return Rating(

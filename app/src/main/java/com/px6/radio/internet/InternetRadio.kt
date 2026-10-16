@@ -119,8 +119,10 @@ object InternetRadio {
         // offers; verified). Cleaner than hardcoding the a1 variant it points to.
         Seed("Radio Fortuna", "Tiflis", "GE",
             "https://tv.cdn.xsg.ge/cld9-0386/fortuna/playlist.m3u8", "https://fortuna.ge"),
+        // Its own page, not the shared front page: both stations live on fortuna.ge, and the logo
+        // search takes what the given page shows — on the front page that is the main station's.
         Seed("Radio Fortuna Plus", "Tiflis", "GE",
-            "https://tv.cdn.xsg.ge/cld9-0386/fortunaplus/playlist.m3u8", "https://fortuna.ge"),
+            "https://tv.cdn.xsg.ge/cld9-0386/fortunaplus/playlist.m3u8", "https://fortuna.ge/fortuna-plus/"),
         Seed("Radio Palitra", "Tiflis", "GE",
             "https://radiostream.palitra.ge/stream.mp3", "https://www.palitranews.ge"),
         Seed("Radio Positive", "Tiflis", "GE",

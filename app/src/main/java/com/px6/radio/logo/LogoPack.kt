@@ -113,11 +113,26 @@ object LogoPack {
         store.put(key, bytes, source, grade)
     }
 
-    /** A candidate this good ends the search — downloading further pictures would be waste. */
-    private const val GOOD_ENOUGH = 200
+    /**
+     * A candidate this good ends the search: big, sharp and square, nothing can beat it by much.
+     * Deliberately high — a merely good icon must not end the search, because the better picture
+     * often comes later in the list. Every BBC station page declares the same "BBC Sounds" app icon
+     * (180 px, score 218) while the station's own artwork is its `og:image` (600 px): stopping at
+     * the first good one gave ten BBC stations the same platform logo.
+     */
+    private const val GOOD_ENOUGH = 260
 
     /** At most this many addresses per station; the list is ordered, the tail is rarely better. */
     private const val MAX_CANDIDATES = 8
+
+    /**
+     * How much better a later candidate must be to displace an earlier one. The order of the list is
+     * a ranking by confidence — what a site declares as its icon, then what it shows first — so a
+     * two-point difference must not decide (Radio Fortuna shows its globe and its sister station's
+     * logo on the same page, grades 209 and 211). A real difference, like the BBC's station artwork
+     * against the shared "BBC Sounds" app icon, is far larger than this.
+     */
+    private const val MARGIN = 20
 
     /**
      * The **best** candidate, not the first passing one — and a mediocre picture is kept rather than
@@ -132,6 +147,8 @@ object LogoPack {
     private fun bestLogo(candidates: List<String>, what: String, more: () -> List<String> = { emptyList() }): Pair<ByteArray, Int>? {
         var best: ByteArray? = null
         var bestScore = -1
+        var bestUrl: String? = null
+        var bestOf: LogoQuality.Rating? = null
         fun consider(urls: List<String>): Boolean {
             for (url in urls) {
                 for (attempt in listOfNotNull(unscaledOriginal(url), url)) {
@@ -142,11 +159,20 @@ object LogoPack {
                     if (!rating.acceptable) {
                         Log.i(TAG, "logo $what via $attempt is no usable picture"); continue
                     }
-                    if (rating.score > bestScore) { bestScore = rating.score; best = bytes }
-                    if (bestScore >= GOOD_ENOUGH) {
-                        Log.i(TAG, "logo $what: $attempt ${rating.width}x${rating.height} score ${rating.score}")
-                        return true
+                    // Sharpness decides first: a blurred picture looks wrong at any size, while a
+                    // sharp one in an odd format still reads on the tile. Only within the same class
+                    // does the grade decide — and then only by a clear margin, see [MARGIN].
+                    val sharpEnough = rating.sharpness >= LogoQuality.MIN_EDGE
+                    val bestSharp = (bestOf?.sharpness ?: 0) >= LogoQuality.MIN_EDGE
+                    val better = when {
+                        best == null -> true
+                        sharpEnough != bestSharp -> sharpEnough
+                        else -> rating.score > bestScore + MARGIN
                     }
+                    if (better) {
+                        bestScore = rating.score; best = bytes; bestUrl = attempt; bestOf = rating
+                    }
+                    if (bestScore >= GOOD_ENOUGH && bestSharp) return true
                 }
             }
             return false
@@ -155,6 +181,8 @@ object LogoPack {
         val found = best ?: run {
             Log.i(TAG, "logo $what: nothing usable among ${candidates.size} addresses"); return null
         }
+        Log.i(TAG, "logo $what: $bestUrl ${bestOf?.width}x${bestOf?.height} " +
+            "scharf ${bestOf?.sharpness} note $bestScore")
         return found to bestScore
     }
 
@@ -406,6 +434,7 @@ object LogoPack {
             if (registrableDomain(abs.host) != registrableDomain(base.host)) return@forEach
             found += abs.toString()
         }
+        Log.i(TAG, "Logos auf der Seite $homepage: ${found.size}")
         return found.toList()
     }
 

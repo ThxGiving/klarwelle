@@ -1431,7 +1431,12 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         val ip = _state.value.stations.filter { it.band == Band.IP }
         for (st in ip) {
             val key = logoStore.key(st)
-            if (logoStore.sourceRank(key) >= LogoSource.PACK.rank) continue
+            val rank = logoStore.sourceRank(key)
+            // A logo from a better source stays. A pack logo stays only once it has been graded —
+            // an ungraded one was picked by the old "first picture that decodes" search and may well
+            // be mush (Radio Fortuna), so it gets one more chance against the graded search.
+            if (rank > LogoSource.PACK.rank) continue
+            if (rank == LogoSource.PACK.rank && logoStore.grade(key) > 0) continue
             val got = runCatching {
                 LogoPack.downloadDirect(logoStore, key, searchFavicons[st.id], st.homepage)
             }.getOrDefault(false)
