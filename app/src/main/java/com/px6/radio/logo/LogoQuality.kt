@@ -9,7 +9,11 @@ import kotlin.math.max
  * Whether a downloaded picture is usable as a station logo. Size alone is not enough: showing a
  * wrong or mushy picture is worse than showing the station's initials.
  *
- * Three gates, learned from the iOS fassung (`ImageQuality.swift`, `LogoDiscovery.swift`) where
+ * The grade is a score, not a yes/no: the best candidate for a station wins, and a mediocre picture
+ * is still stored when nothing better exists — a station with a logo of sorts beats coloured initials.
+ * Only what is no logo at all is thrown away.
+ *
+ * Measured on the iOS fassung (`ImageQuality.swift`, `LogoDiscovery.swift`) where
  * these cases were measured:
  *  - **raster image** at all — radio-browser serves HTML error pages and SVGs as "favicon";
  *  - **at least 96 px** and, for automatically discovered pictures, roughly **square** (0.8–1.25).
@@ -44,9 +48,13 @@ object LogoQuality {
         runCatching { scaled.getPixels(px, 0, side, 0, 0, side, side) }.getOrElse { return 0 }
         val grey = IntArray(px.size) { i ->
             val c = px[i]
-            // Rec. 601 luma, integer — alpha ignored on purpose: a transparent logo is drawn on a
-            // plate later, and its ink is what must be sharp.
-            ((c shr 16 and 0xFF) * 77 + (c shr 8 and 0xFF) * 150 + (c and 0xFF) * 29) shr 8
+            val luma = ((c shr 16 and 0xFF) * 77 + (c shr 8 and 0xFF) * 150 + (c and 0xFF) * 29) shr 8
+            // Over white, like the tile draws it. Transparency must NOT be ignored: a fully
+            // transparent pixel carries arbitrary colour, so an ignored alpha channel produced hard
+            // "edges" all around a cut-out logo — every transparent picture then measured 255 and the
+            // whole check was dead. Composited, Radio Fortuna's upscaled icon measures 11 again.
+            val a = c ushr 24 and 0xFF
+            (luma * a + 255 * (255 - a)) / 255
         }
         val steps = ArrayList<Int>(side * side / 4)
         for (y in 0 until side - 1) {
@@ -62,22 +70,60 @@ object LogoQuality {
         return steps[((steps.size - 1) * 0.99).toInt()]
     }
 
+    /** What a candidate picture is worth. */
+    data class Rating(
+        /** Decodable raster image at all, not blank, not an extreme strip — worth storing if nothing better turns up. */
+        val acceptable: Boolean,
+        /** Big, sharp: worth stopping the search for. */
+        val good: Boolean,
+        /** Roughly a square, as a logo tile wants it (0.8–1.25). */
+        val squareish: Boolean,
+        /** 0–270, higher is better. Only comparable between candidates for the same station. */
+        val score: Int,
+        val width: Int = 0,
+        val height: Int = 0,
+        val sharpness: Int = 0,
+    ) {
+        companion object { val NONE = Rating(acceptable = false, good = false, squareish = false, score = 0) }
+    }
+
+    /** Smallest edge we still store when nothing better exists — below this there is nothing to see. */
+    const val FLOOR_PX = 48
+
     /**
-     * Gate for a picture about to be stored as a logo. [requireSquare] is true for anything found
-     * automatically (web icons, directory favicons) and false for hand-checked or broadcaster-supplied
-     * artwork, which may legitimately be wide.
+     * Grades a candidate. The three properties a tile cares about — pixels, sharpness, proportion —
+     * each give points, so a 300 px sharp logo beats a 512 px upscale and both beat a 64 px favicon,
+     * without any of them being thrown away outright. Stations whose only picture is mediocre
+     * (an upscaled icon, a wide press photo) then still get *a* logo instead of initials.
      */
-    fun isUsable(bytes: ByteArray, requireSquare: Boolean = true): Boolean {
-        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds) }
-        val w = bounds.outWidth
-        val h = bounds.outHeight
-        if (w < MIN_PX || h < MIN_PX) return false
-        val ratio = w.toDouble() / h.toDouble()
-        if (requireSquare && (ratio < 0.8 || ratio > 1.25)) return false
-        if (ratio < 0.4 || ratio > 2.5) return false
+    fun rate(bytes: ByteArray): Rating {
         val bitmap = runCatching { BitmapFactory.decodeByteArray(bytes, 0, bytes.size) }.getOrNull()
-            ?: return false
-        return edgeSharpness(bitmap) >= MIN_EDGE
+            ?: return Rating.NONE                                     // SVG, HTML error page, truncated file
+        val w = bitmap.width
+        val h = bitmap.height
+        if (w < FLOOR_PX || h < FLOOR_PX) return Rating.NONE
+        val ratio = w.toDouble() / h.toDouble()
+        if (ratio < 0.25 || ratio > 4.0) return Rating.NONE           // a banner strip is not a logo
+        val sharp = edgeSharpness(bitmap)
+        if (sharp <= 0) return Rating.NONE                            // one flat colour: nothing on it
+        val shortSide = minOf(w, h)
+        val squareish = ratio >= 0.8 && ratio <= 1.25
+        // Sharpness weighs heaviest: a small crisp logo looks right on a tile, a big mushy one never
+        // does. Radio Fortuna's 512 px upscale (sharp 11) thus loses against its 315x212 page logo
+        // (sharp 178) although it is bigger and square.
+        val score = (minOf(shortSide, 512) * 80 / 512) +
+            (minOf(sharp, 120) * 150 / 120) +
+            when {
+                squareish -> 40
+                ratio in 0.5..2.0 -> 20
+                else -> 0
+            }
+        return Rating(
+            acceptable = true,
+            good = shortSide >= MIN_PX && sharp >= MIN_EDGE,
+            squareish = squareish,
+            score = score,
+            width = w, height = h, sharpness = sharp,
+        )
     }
 }

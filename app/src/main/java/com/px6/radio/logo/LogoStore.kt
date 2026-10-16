@@ -62,6 +62,11 @@ class LogoStore(context: Context) {
     /** station key -> source rank, mirrored to [indexFile]. Guarded by [cacheLock]. */
     private val index = HashMap<String, Int>()
 
+    /** station key -> grade of the stored picture ([LogoQuality.rate]); 0 for logos stored before
+     *  grading existed. Lets a later run replace a poor logo with a better one from the same source.
+     *  Guarded by [cacheLock]. */
+    private val grades = HashMap<String, Int>()
+
     /** Decoded-bitmap cache; null value = "looked, found nothing". Guarded by [cacheLock]. */
     private val decoded = HashMap<String, ImageBitmap?>()
 
@@ -75,7 +80,16 @@ class LogoStore(context: Context) {
             if (indexFile.exists()) {
                 val json = JSONObject(indexFile.readText())
                 synchronized(cacheLock) {
-                    json.keys().forEach { k -> index[k] = json.optInt(k, LogoSource.PACK.rank) }
+                    json.keys().forEach { k ->
+                        // Two shapes: a plain rank (written before grades existed) or {"r":…,"s":…}.
+                        val obj = json.optJSONObject(k)
+                        if (obj != null) {
+                            index[k] = obj.optInt("r", LogoSource.PACK.rank)
+                            grades[k] = obj.optInt("s", 0)
+                        } else {
+                            index[k] = json.optInt(k, LogoSource.PACK.rank)
+                        }
+                    }
                 }
             }
         }.onFailure { Log.w(TAG, "init failed: ${it.message}") }
@@ -130,9 +144,15 @@ class LogoStore(context: Context) {
      * Stores [bytes] for [key] unless an equal-or-higher-ranked source already provided one.
      * Returns true when the cache actually changed.
      */
-    fun put(key: String, bytes: ByteArray, source: LogoSource): Boolean {
-        val existing = synchronized(cacheLock) { index[key] }
-        if (existing != null && existing >= source.rank) return false
+    fun put(key: String, bytes: ByteArray, source: LogoSource, grade: Int = 0): Boolean {
+        val (existing, existingGrade) = synchronized(cacheLock) { index[key] to (grades[key] ?: 0) }
+        if (existing != null) {
+            // A better source always wins. Within the same source only a better picture does, so a
+            // repeated run quietly upgrades a poor logo (and an ungraded old one) instead of keeping
+            // it forever — without re-writing the same file every time.
+            if (existing > source.rank) return false
+            if (existing == source.rank && grade <= existingGrade) return false
+        }
         return runCatching {
             if (!dir.exists()) dir.mkdirs()
             // Reject anything that is not a decodable image — radio-browser favicons are
@@ -141,7 +161,7 @@ class LogoStore(context: Context) {
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
             if (opts.outWidth <= 0 || opts.outHeight <= 0) return false
             file(key).writeBytes(matteForDarkUi(bytes))
-            synchronized(cacheLock) { index[key] = source.rank }
+            synchronized(cacheLock) { index[key] = source.rank; grades[key] = grade }
             // Clear the whole decode cache, not just this key: a cross-band consumer (an FM station
             // borrowing this DAB logo) may have cached a miss under its own key.
             synchronized(cacheLock) { decoded.clear() }
@@ -212,7 +232,11 @@ class LogoStore(context: Context) {
     private fun writeIndex() {
         runCatching {
             val json = JSONObject()
-            synchronized(cacheLock) { index.forEach { (k, v) -> json.put(k, v) } }
+            synchronized(cacheLock) {
+                index.forEach { (k, v) ->
+                    json.put(k, JSONObject().put("r", v).put("s", grades[k] ?: 0))
+                }
+            }
             indexFile.writeText(json.toString())
         }.onFailure { Log.w(TAG, "writeIndex failed: ${it.message}") }
     }
