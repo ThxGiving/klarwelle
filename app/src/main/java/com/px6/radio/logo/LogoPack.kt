@@ -43,6 +43,9 @@ object LogoPack {
     /** A favicon larger than this is not a logo but a mistake. */
     private const val MAX_IMAGE_BYTES = 512 * 1024
 
+    /** A page is read only up to its </head>; this is the hard ceiling if a page has none. */
+    private const val HEAD_LIMIT = 1_500_000
+
     /**
      * Looks up every station in [stations] and stores the logos it finds.
      *
@@ -75,13 +78,9 @@ object LogoPack {
             // their live logo only lives on their own site, reachable via the homepage the DB carries.
             val candidates = buildList {
                 if (hit.favicon.startsWith("http")) add(hit.favicon)
-                if (hit.homepage.startsWith("http")) homepageIcon(hit.homepage)?.let { add(it) }
+                if (hit.homepage.startsWith("http")) addAll(homepageIcons(hit.homepage).take(5))
             }
-            val bytes = candidates.firstNotNullOfOrNull { url ->
-                runCatching { fetchImage(url) }.getOrElse {
-                    Log.w(TAG, "logo ${station.name} via $url failed: ${it.message}"); null
-                }
-            } ?: return@forEachIndexed
+            val bytes = firstUsable(candidates, station.name) ?: return@forEachIndexed
             if (store.put(store.key(station), bytes, LogoSource.PACK)) stored++
         }
         LogoPackResult(matched, stored)
@@ -101,14 +100,53 @@ object LogoPack {
     ): Boolean = withContext(Dispatchers.IO) {
         val candidates = buildList {
             faviconUrl?.takeIf { it.startsWith("http") }?.let { add(it) }
-            homepage?.takeIf { it.startsWith("http") }?.let { homepageIcon(it)?.let(::add) }
+            homepage?.takeIf { it.startsWith("http") }?.let { addAll(homepageIcons(it).take(5)) }
         }
-        val bytes = candidates.firstNotNullOfOrNull { url ->
-            runCatching { fetchImage(url) }.getOrElse {
-                Log.w(TAG, "logo via $url failed: ${it.message}"); null
-            }
-        } ?: return@withContext false
+        val bytes = firstUsable(candidates, key) ?: return@withContext false
         store.put(key, bytes, source)
+    }
+
+    /**
+     * The first candidate that downloads AND passes the quality gate — not merely the first that
+     * decodes. A 32-px favicon or an upscaled icon used to be stored and then looked like porridge
+     * on a tile; now the list simply continues. For every address a WordPress original is tried
+     * first (see [unscaledOriginal]).
+     */
+    private fun firstUsable(candidates: List<String>, what: String): ByteArray? {
+        for (url in candidates) {
+            for (attempt in listOfNotNull(unscaledOriginal(url), url)) {
+                val bytes = runCatching { fetchImage(attempt) }.getOrElse {
+                    Log.w(TAG, "logo $what via $attempt failed: ${it.message}"); null
+                } ?: continue
+                if (LogoQuality.isUsable(bytes)) return bytes
+                Log.i(TAG, "logo $what via $attempt rejected (too small, not square or blurred)")
+            }
+        }
+        return null
+    }
+
+    /**
+     * What radio-browser knows about a **stream address** (`/json/stations/byurl`): its logo and
+     * homepage. This is the exact lookup — no name guessing — and it rescues stations whose own
+     * site is gone: Radio Tbilisi's tbilisi.fm no longer exists, but the directory carries our
+     * stream as "Tbilisi FM 93.5" with a sharp 150 px logo on tbilisifm.ge.
+     */
+    fun byStreamUrl(streamUrl: String): Pair<String?, String?>? {
+        for (host in HOSTS) {
+            val body = runCatching {
+                get("$host/json/stations/byurl?url=" + java.net.URLEncoder.encode(streamUrl, "UTF-8"), 512 * 1024)
+            }.getOrNull() ?: continue
+            val array = runCatching { JSONArray(String(body, Charsets.UTF_8)) }.getOrNull() ?: continue
+            var favicon: String? = null
+            var homepage: String? = null
+            for (i in 0 until array.length()) {
+                val o = array.optJSONObject(i) ?: continue
+                if (favicon == null) o.optString("favicon").trim().takeIf { it.startsWith("http") }?.let { favicon = it }
+                if (homepage == null) o.optString("homepage").trim().takeIf { it.startsWith("http") }?.let { homepage = it }
+            }
+            if (favicon != null || homepage != null) return favicon to homepage
+        }
+        return null
     }
 
     /** One radio-browser entry, prepared for matching. */
@@ -214,30 +252,85 @@ object LogoPack {
      * best square-ish candidate. This is not scraping one specific host: it reads whatever icon the
      * site itself advertises (for Antenne Unna that resolves to their own logo host, for WDR to WDR's).
      */
-    private fun homepageIcon(homepage: String): String? {
-        val html = runCatching { String(get(homepage, 1_000_000), Charsets.UTF_8) }.getOrNull() ?: return null
+    /**
+     * Every icon a station's homepage declares, best first. One candidate is not enough: the best
+     * link is regularly dead or points at a mushy upscale, and the next one is fine.
+     *
+     * Order (from the iOS fassung, where these cases were measured): `apple-touch-icon` — including
+     * `-precomposed`, which some stations use exclusively — by declared size, then `rel=icon` with
+     * `sizes` >= 120, then the icons of the **web app manifest** (often 192/512 px), then the
+     * conventional `/apple-touch-icon.png`, and only last the OpenGraph image (often a wide banner).
+     */
+    private fun homepageIcons(homepage: String): List<String> {
+        // Read the HEAD only. Station front pages run past a megabyte (Z100 1.25 MB, France Bleu
+        // 950 KB); with a flat byte limit they failed entirely, and everything we need is in <head>.
+        val html = runCatching { headOf(homepage) }.getOrNull() ?: return emptyList()
         val base = URL(homepage)
-        var bestUrl: String? = null
-        var bestScore = -1
+        data class Cand(val url: String, val score: Int)
+        val found = ArrayList<Cand>()
         fun consider(href: String?, score: Int) {
             val h = href?.takeIf { it.isNotBlank() } ?: return
             if (h.endsWith(".svg", true)) return                       // BitmapFactory can't decode SVG
             val abs = runCatching { URL(base, h).toString() }.getOrNull() ?: return
-            if (score > bestScore) { bestScore = score; bestUrl = abs }
+            found += Cand(abs, score)
         }
-        // <link rel="... icon ..."> — apple-touch-icon is the cleanest square PNG, then largest sizes.
+        var manifestHref: String? = null
         Regex("<link\\b[^>]*>", RegexOption.IGNORE_CASE).findAll(html).forEach { m ->
             val rel = attr(m.value, "rel")?.lowercase() ?: return@forEach
+            if (rel.contains("manifest")) { manifestHref = attr(m.value, "href"); return@forEach }
             if (!rel.contains("icon")) return@forEach
             val size = attr(m.value, "sizes")?.substringBefore('x')?.trim()?.toIntOrNull() ?: 0
-            consider(attr(m.value, "href"), if (rel.contains("apple-touch-icon")) 1000 + size else 100 + size)
+            when {
+                rel.contains("apple-touch-icon") -> consider(attr(m.value, "href"), 1000 + size)
+                size >= 120 -> consider(attr(m.value, "href"), 500 + size)
+            }
         }
-        // Open Graph image as a last resort (often the logo, sometimes a wide banner).
+        // Web app manifest icons — modern sites keep their largest, cleanest artwork there.
+        manifestHref?.let { href ->
+            val manifestUrl = runCatching { URL(base, href).toString() }.getOrNull()
+            if (manifestUrl != null) {
+                runCatching {
+                    val obj = org.json.JSONObject(String(get(manifestUrl, 256 * 1024), Charsets.UTF_8))
+                    val icons = obj.optJSONArray("icons")
+                    for (i in 0 until (icons?.length() ?: 0)) {
+                        val icon = icons!!.optJSONObject(i) ?: continue
+                        val src = icon.optString("src").takeIf { it.isNotBlank() } ?: continue
+                        if (icon.optString("type").contains("svg", true)) continue
+                        val size = icon.optString("sizes").split(" ")
+                            .mapNotNull { it.substringBefore('x').trim().toIntOrNull() }.maxOrNull() ?: 0
+                        runCatching { URL(URL(manifestUrl), src).toString() }.getOrNull()
+                            ?.let { found += Cand(it, 700 + size) }
+                    }
+                }
+            }
+        }
+        consider("/apple-touch-icon.png", 10)
         Regex("<meta\\b[^>]*>", RegexOption.IGNORE_CASE).findAll(html).forEach { m ->
             val prop = (attr(m.value, "property") ?: attr(m.value, "name"))?.lowercase()
-            if (prop == "og:image" || prop == "og:image:url") consider(attr(m.value, "content"), 50)
+            if (prop == "og:image" || prop == "og:image:url") consider(attr(m.value, "content"), 5)
         }
-        return bestUrl?.let(::upgradeSharedBucketSize)
+        return found.sortedByDescending { it.score }.map { upgradeSharedBucketSize(it.url) }.distinct()
+    }
+
+    /**
+     * A page's `<head>`, at most [HEAD_LIMIT] bytes. Stops reading at `</head>` so a one-megabyte
+     * front page costs a few kilobytes.
+     */
+    private fun headOf(url: String): String {
+        val whole = String(get(url, HEAD_LIMIT, stopAt = "</head"), Charsets.UTF_8)
+        val end = whole.indexOf("</head", ignoreCase = true)
+        return if (end > 0) whole.substring(0, end) else whole
+    }
+
+    /**
+     * WordPress serves scaled copies named `…-300x300.png` beside the uploaded original `….png`.
+     * For such an address, try the original first — it is usually larger (Radio Fortuna: 512
+     * instead of 300 px). Null when the address carries no size suffix.
+     */
+    private fun unscaledOriginal(url: String): String? {
+        val m = Regex("-\\d{2,4}x\\d{2,4}(\\.(?:png|jpe?g))(\\?.*)?$", RegexOption.IGNORE_CASE).find(url)
+            ?: return null
+        return url.removeRange(m.range.first, m.range.first + m.value.length) + m.groupValues[1] + m.groupValues[2]
     }
 
     /**
@@ -255,7 +348,7 @@ object LogoPack {
         Regex("\\b$name\\s*=\\s*\"([^\"]*)\"", RegexOption.IGNORE_CASE).find(tag)?.groupValues?.get(1)
             ?: Regex("\\b$name\\s*=\\s*'([^']*)'", RegexOption.IGNORE_CASE).find(tag)?.groupValues?.get(1)
 
-    private fun get(url: String, limit: Int = 8 * 1024 * 1024): ByteArray {
+    private fun get(url: String, limit: Int = 8 * 1024 * 1024, stopAt: String? = null): ByteArray {
         val connection = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = CONNECT_TIMEOUT
             readTimeout = READ_TIMEOUT
@@ -273,6 +366,10 @@ object LogoPack {
                     val read = input.read(buffer)
                     if (read < 0) break
                     out.write(buffer, 0, read)
+                    // Early stop for HTML: everything we read a page for lives in its <head>.
+                    if (stopAt != null && out.size() > 2048 &&
+                        String(out.toByteArray(), Charsets.UTF_8).contains(stopAt, ignoreCase = true)
+                    ) break
                     if (out.size() > limit) throw IllegalStateException("Antwort zu groß")
                 }
             }

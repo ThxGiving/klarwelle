@@ -1422,14 +1422,28 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         fetchInternetLogos()
     }
 
-    /** Best-effort logos for every IP station still without one (favicon → homepage icon). */
+    /**
+     * Best-effort logos for every IP station still without one: the favicon we were handed, then the
+     * icons the station's homepage declares, and finally what radio-browser lists for the **stream
+     * address** — the exact lookup, which also rescues stations whose own site has disappeared.
+     */
     private fun fetchInternetLogos() = viewModelScope.launch(Dispatchers.IO) {
         val ip = _state.value.stations.filter { it.band == Band.IP }
         for (st in ip) {
             val key = logoStore.key(st)
             if (logoStore.sourceRank(key) >= LogoSource.PACK.rank) continue
-            runCatching {
+            val got = runCatching {
                 LogoPack.downloadDirect(logoStore, key, searchFavicons[st.id], st.homepage)
+            }.getOrDefault(false)
+            if (got) continue
+            val url = st.streamUrl ?: continue
+            runCatching {
+                val (favicon, homepage) = LogoPack.byStreamUrl(url) ?: return@runCatching
+                if (favicon == null && homepage == null) return@runCatching
+                val ok = LogoPack.downloadDirect(logoStore, key, favicon, homepage)
+                Diag.write(appContext, DiagFile.IP,
+                    "${currentClock()} Logo ueber Stream-Adresse fuer ${st.name}: ${if (ok) "gefunden" else "nichts"}\n",
+                    append = true)
             }
         }
     }

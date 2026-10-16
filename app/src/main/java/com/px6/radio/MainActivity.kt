@@ -1,5 +1,7 @@
 package com.px6.radio
 
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
 import com.px6.radio.diag.Diag
 import com.px6.radio.diag.DiagFile
 import android.content.BroadcastReceiver
@@ -204,7 +206,21 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        overlayJob?.cancel(); overlayJob = null
         overlay.hide()   // back in the foreground — the full UI replaces the mini player
+    }
+
+    /** Feeds the floating window while it is up; cancelled the moment we come back. */
+    private var overlayJob: kotlinx.coroutines.Job? = null
+
+    /** Station plus metadata line, as the mini player shows them. */
+    private fun overlayText(s: com.px6.radio.model.RadioUiState): Pair<String, String?> {
+        val np = s.nowPlaying
+        val name = np?.station?.let { s.displayName(it) } ?: "—"
+        val line = np?.let {
+            if (it.dlArtist != null && it.dlTitle != null) "${it.dlArtist} — ${it.dlTitle}" else it.dlsText
+        }?.takeIf { it.isNotBlank() }
+        return name to line
     }
 
     override fun onStop() {
@@ -219,15 +235,40 @@ class MainActivity : ComponentActivity() {
         if (!s.isPlaying) return
         if (android.os.Build.VERSION.SDK_INT < 23 || !android.provider.Settings.canDrawOverlays(this)) return
         val logo = runCatching { vm.logoStore.bitmap(station)?.asAndroidBitmap() }.getOrNull()
+        val (name, line) = overlayText(s)
         overlay.show(
-            stationName = station.name,
+            stationName = name,
+            line = line,
             logo = logo,
             onOpen = {
                 startActivity(Intent(this, MainActivity::class.java)
                     .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or Intent.FLAG_ACTIVITY_NEW_TASK))
             },
-            onClose = { overlay.hide() },
+            onPrev = { vm.prev() },
+            onNext = { vm.next() },
+            onClose = { overlay.hide(); overlayJob?.cancel(); overlayJob = null },
         )
+        // Keep it current: the station can change from the steering wheel, the knob or service
+        // following while we are in the background — the window showed the state at the moment it
+        // appeared and then lied for the rest of the drive. lifecycleScope (not repeatOnLifecycle)
+        // because the Activity is deliberately STOPPED here; the job dies in onStart/onDestroy.
+        overlayJob?.cancel()
+        overlayJob = lifecycleScope.launch {
+            var shownId: String? = station.id
+            var shownLogo: android.graphics.Bitmap? = logo
+            vm.state.collect { st ->
+                if (!overlay.isShowing) return@collect
+                val cur = st.nowPlaying?.station
+                // The logo is only re-read when the station actually changed — state emits on every
+                // metadata tick, and decoding a bitmap per tick would be absurd for a 44 dp icon.
+                if (cur?.id != shownId) {
+                    shownId = cur?.id
+                    shownLogo = cur?.let { runCatching { vm.logoStore.bitmap(it)?.asAndroidBitmap() }.getOrNull() }
+                }
+                val (name, line) = overlayText(st)
+                overlay.update(name, line, shownLogo)
+            }
+        }
     }
 
     /**

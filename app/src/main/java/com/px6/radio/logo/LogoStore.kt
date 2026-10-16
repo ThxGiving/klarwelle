@@ -167,7 +167,7 @@ class LogoStore(context: Context) {
         if (!src.hasAlpha()) return bytes
         val w = src.width; val h = src.height
         if (w <= 0 || h <= 0) return bytes
-        var lumSum = 0.0; var count = 0
+        var lumSum = 0.0; var count = 0; var nearWhite = 0
         val stepX = max(1, w / 32); val stepY = max(1, h / 32)
         var y = 0
         while (y < h) {
@@ -177,12 +177,18 @@ class LogoStore(context: Context) {
                 if (((p ushr 24) and 0xFF) > 40) {                 // reasonably opaque pixel
                     val r = (p ushr 16) and 0xFF; val g = (p ushr 8) and 0xFF; val b = p and 0xFF
                     lumSum += 0.299 * r + 0.587 * g + 0.114 * b; count++
+                    if (r > 215 && g > 215 && b > 215) nearWhite++
                 }
                 x += stepX
             }
             y += stepY
         }
         if (count == 0) return bytes                                // fully transparent — nothing to do
+        // A logo whose ink is largely NEAR-WHITE must keep its transparency and be shown on the dark
+        // tile: Radio Tbilisi draws white "FM 93.5" on a transparent ground and vanished on a white
+        // plate. The mean alone did not catch it — a few dark details pulled the average down — so
+        // the share of near-white pixels decides (> 12 %, measured on the iOS fassung).
+        if (nearWhite.toDouble() / count > 0.12) return bytes
         if (lumSum / count / 255.0 >= 0.5) return bytes             // light ink -> fine on dark, keep alpha
         // Dark ink -> bake onto white so it stays visible on a dark tile.
         return runCatching {
