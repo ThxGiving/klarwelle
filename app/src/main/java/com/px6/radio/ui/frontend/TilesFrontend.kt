@@ -60,6 +60,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.graphics.graphicsLayer
 import kotlinx.coroutines.isActive
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.lazy.items
@@ -691,6 +692,7 @@ object TilesFrontend : RadioFrontend {
         pendingStore: Station?,
         onStored: () -> Unit,
     ) {
+        FollowPresetPage(state, pager)
         val paging = rememberStationPaging(state, actions)
         val scope = rememberCoroutineScope()
         Column(Modifier.fillMaxSize()) {
@@ -718,6 +720,7 @@ object TilesFrontend : RadioFrontend {
                     // left/right never gets stolen as an app-switch/back.
                     HorizontalPager(
                         state = pager, pageSpacing = skin.pad(8),
+                        flingBehavior = shortSwipe(pager),
                         modifier = Modifier.systemGestureExclusion(),
                     ) { pageIndex ->
                         PresetRow(state, actions, pageIndex, pendingStore, onStored)
@@ -743,6 +746,7 @@ object TilesFrontend : RadioFrontend {
         pendingStore: Station?,
         onStored: () -> Unit,
     ) {
+        FollowPresetPage(state, pager)
         val paging = rememberStationPaging(state, actions)
         val scope = rememberCoroutineScope()
         Column(Modifier.fillMaxSize()) {
@@ -807,6 +811,7 @@ object TilesFrontend : RadioFrontend {
                 ViewMode.PRESETS, ViewMode.SLIDESHOW -> {
                     HorizontalPager(
                         state = pager, pageSpacing = skin.pad(8),
+                        flingBehavior = shortSwipe(pager),
                         modifier = Modifier.systemGestureExclusion(),
                     ) { pageIndex ->
                         PresetGrid(state, actions, pageIndex, pendingStore, onStored)
@@ -1049,6 +1054,45 @@ object TilesFrontend : RadioFrontend {
         ) { Text(glyph, color = appColors.text, fontSize = skin.font(30.sp)) }
     }
 
+    /**
+     * The preset pages page over after a **short** drag. A pager normally wants the finger to pass
+     * the middle of the page (threshold 0.5) before it snaps onward; in the car that is a long pull
+     * across half the screen. An eighth of the page is enough to mean it, and a quick flick still
+     * works as before.
+     */
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    private fun shortSwipe(pager: PagerState) = PagerDefaults.flingBehavior(
+        state = pager, snapPositionalThreshold = 0.12f,
+    )
+
+    /**
+     * The preset page the station is stored on, or null if it is on none. The first stored button
+     * wins when a station sits on several, which is the one the eye looks for.
+     */
+    internal fun presetGroupOf(presets: List<com.px6.radio.model.PresetSlot>, stationId: String?): Int? {
+        if (stationId == null) return null
+        val index = presets.firstOrNull { it.stationId == stationId }?.index ?: return null
+        val group = (index - 1) / PER_GROUP
+        return group.takeIf { it in 0 until GROUPS }
+    }
+
+    /**
+     * The playing station sits on another preset page: go there. A station can change without the
+     * screen being touched — steering wheel, knob, service following — and the page showing it is
+     * the one worth seeing. A page the finger is moving right now is left alone.
+     */
+    @OptIn(ExperimentalFoundationApi::class)
+    @Composable
+    private fun FollowPresetPage(state: RadioUiState, pager: PagerState) {
+        val group = presetGroupOf(state.presets, state.nowPlaying?.station?.id)
+        LaunchedEffect(group) {
+            if (group != null && group in 0 until GROUPS &&
+                group != pager.currentPage && !pager.isScrollInProgress
+            ) pager.animateScrollToPage(group)
+        }
+    }
+
     @Composable
     private fun PresetRow(
         state: RadioUiState,
@@ -1186,12 +1230,15 @@ object TilesFrontend : RadioFrontend {
                 )
                 if (skin.tileLabel == TileLabel.INSIDE) {
                     TileName(name, active, Modifier.align(Alignment.Center))
-                } else if (station == null) {
+                } else if (station == null && skin.tileLabel == TileLabel.NONE) {
+                    // Only where no name line sits under the tile. Beside a two-digit number the
+                    // centred dash landed on the "1" and broke its even colour; with a label below
+                    // it also said "empty" twice.
                     Text(
                         "—", color = appColors.muted2, fontSize = skin.font(skin.bodySize),
                         modifier = Modifier.align(Alignment.Center),
                     )
-                } else if (skin.showLogos) {
+                } else if (station != null && skin.showLogos) {
                     StationLogo(
                         station = station,
                         modifier = Modifier.align(Alignment.Center)
