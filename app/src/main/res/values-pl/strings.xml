@@ -294,4 +294,9 @@
     <string name="tiles_scanning_pct">Szukanie %1$d %%</string>
     <string name="tiles_scanning">Szukanie</string>
     <string name="settings_scan_found_stations">%1$d stacji znaleziono</string>
+    <string name="media_previous">Poprzednia stacja</string>
+    <string name="media_stop">Wyłącz dźwięk</string>
+    <string name="media_next">Następna stacja</string>
+    <string name="notification_channel_playback">Odtwarzanie</string>
+    <string name="notification_channel_playback_hint">Pokazuje graną stację, gdy radio działa w tle.</string>
 </resources>

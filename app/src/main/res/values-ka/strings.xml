@@ -294,4 +294,9 @@
     <string name="tiles_scanning_pct">ძებნა %1$d %%</string>
     <string name="tiles_scanning">ძებნა</string>
     <string name="settings_scan_found_stations">%1$d სადგური ნაპოვნია</string>
+    <string name="media_previous">წინა რადიოსადგური</string>
+    <string name="media_stop">ხმის გამორთვა</string>
+    <string name="media_next">შემდეგი რადიოსადგური</string>
+    <string name="notification_channel_playback">დაკვრა</string>
+    <string name="notification_channel_playback_hint">აჩვენებს მიმდინარე რადიოსადგურს, სანამ რადიო ფონურად უკრავს.</string>
 </resources>

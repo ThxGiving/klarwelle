@@ -297,4 +297,9 @@
     <string name="tiles_scanning_pct">Suchlauf %1$d %%</string>
     <string name="tiles_scanning">Suchlauf</string>
     <string name="settings_scan_found_stations">%1$d Sender gefunden</string>
+    <string name="media_previous">Vorheriger Sender</string>
+    <string name="media_stop">Ton aus</string>
+    <string name="media_next">Nächster Sender</string>
+    <string name="notification_channel_playback">Wiedergabe</string>
+    <string name="notification_channel_playback_hint">Zeigt den laufenden Sender, solange das Radio im Hintergrund spielt.</string>
 </resources>

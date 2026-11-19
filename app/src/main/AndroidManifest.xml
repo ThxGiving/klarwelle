@@ -24,6 +24,14 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Floating "now playing" mini-player over other apps while the radio runs in the background. -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <!-- Keeps the radio playing while the app is not on screen. Android only protects audio that
+         belongs to a foreground service; without this the process is a cached one the moment the
+         user leaves the app, and the sound stops for no reason the user can see. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Only for the notification that foreground playback must show. Denying it stops nothing:
+         the radio plays on, the notification just stays hidden. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Lets a privileged/system-installed app self-grant USB access (UsbManager.grantPermission) so
          the DAB stick never triggers the per-boot permission dialog. Signature|privileged — a no-op
          on a normal install (we fall back to the runtime prompt), but many head-unit ROMs honour it. -->
@@ -70,6 +78,19 @@
                 android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
                 android:resource="@xml/device_filter" />
         </activity>
+
+        <!-- Holds the process in the foreground while something plays; the notification mirrors the
+             media session. Playback itself stays in the ViewModel. -->
+        <service
+            android:name=".media.PlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback">
+            <!-- So the notification's buttons can route their media keys back to the session. -->
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </service>
+
     </application>
 
 </manifest>

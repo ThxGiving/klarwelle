@@ -149,6 +149,19 @@ class MainActivity : ComponentActivity() {
                 // Re-evaluate: the GPS follower starts the moment the grant lands, not at next launch.
                 if (result.values.any { it }) vm.updateSettings { it }
             }
+            // The notification that background playback must show. Asked once, and nothing hangs
+            // on the answer: a refusal only hides the notification, the radio plays on either way.
+            val askNotifications = androidx.activity.compose.rememberLauncherForActivityResult(
+                androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+            ) { }
+            androidx.compose.runtime.LaunchedEffect(state.settingsLoaded) {
+                if (!state.settingsLoaded) return@LaunchedEffect
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
+                    ContextCompat.checkSelfPermission(
+                        this@MainActivity, android.Manifest.permission.POST_NOTIFICATIONS,
+                    ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+                ) askNotifications.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
             // Orientation follows the setting, not the manifest: landscape is the safe default for
             // head units; "automatic" lets a tablet or an upright unit turn. The Activity survives the
             // turn (configChanges), so audio and every open panel carry on.

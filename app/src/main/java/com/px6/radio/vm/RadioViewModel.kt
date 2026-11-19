@@ -10,6 +10,7 @@ import com.px6.radio.audio.AudioRouter
 import com.px6.radio.audio.AudioSource
 import com.px6.radio.car.HctCanBus
 import com.px6.radio.media.MediaSessionController
+import com.px6.radio.media.PlaybackService
 import com.px6.radio.dab.DabController
 import com.px6.radio.dab.DabState
 import com.px6.radio.data.FakeRadioRepository
@@ -568,6 +569,12 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
                         if (sig != lastMediaSig) {
                             lastMediaSig = sig
                             mediaSession?.update(np.station.name, subtitle, s.isPlaying, mediaArt(np))
+                            // Hold the process in the foreground for as long as something plays.
+                            // Without it the radio stops the moment the user leaves the app on an
+                            // ordinary tablet: Android only protects audio that belongs to a
+                            // foreground service. The service shows the notification and nothing
+                            // else — the playback stays here.
+                            PlaybackService.sync(appContext, mediaSession?.token, s.isPlaying)
                         }
                     }
                 }
@@ -591,6 +598,9 @@ class RadioViewModel(app: Application) : AndroidViewModel(app), RadioActions {
         runCatching { ipPlayer.stop(0) }
         runCatching { dab?.release() }
         runCatching { fm?.release() }
+        // Let the foreground notification go BEFORE the session it mirrors — otherwise it hangs
+        // around for a moment showing a station nobody is playing any more.
+        runCatching { PlaybackService.sync(appContext, null, playing = false) }
         runCatching { mediaSession?.release() }
         runCatching { hctCanBus?.release() }
         runCatching { carInfo?.release() }

@@ -43,6 +43,9 @@ class MediaSessionController(
         isActive = true
     }
 
+    /** The session's token — the notification of [PlaybackService] mirrors this one session. */
+    val token: MediaSessionCompat.Token get() = session.sessionToken
+
     fun update(stationName: String, subtitle: String?, playing: Boolean, art: Bitmap? = null) {
         session.setMetadata(
             MediaMetadataCompat.Builder()

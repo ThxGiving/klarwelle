@@ -294,4 +294,9 @@
     <string name="tiles_scanning_pct">Búsqueda %1$d %%</string>
     <string name="tiles_scanning">Búsqueda</string>
     <string name="settings_scan_found_stations">%1$d emisoras encontradas</string>
+    <string name="media_previous">Emisora anterior</string>
+    <string name="media_stop">Silenciar</string>
+    <string name="media_next">Emisora siguiente</string>
+    <string name="notification_channel_playback">Reproducción</string>
+    <string name="notification_channel_playback_hint">Muestra la emisora en antena mientras la radio suena en segundo plano.</string>
 </resources>

@@ -295,4 +295,9 @@
     <string name="tiles_scanning_pct">Zoeken %1$d %%</string>
     <string name="tiles_scanning">Zoeken</string>
     <string name="settings_scan_found_stations">%1$d zenders gevonden</string>
+    <string name="media_previous">Vorige zender</string>
+    <string name="media_stop">Geluid uit</string>
+    <string name="media_next">Volgende zender</string>
+    <string name="notification_channel_playback">Weergave</string>
+    <string name="notification_channel_playback_hint">Toont de zender die speelt terwijl de radio op de achtergrond loopt.</string>
 </resources>
